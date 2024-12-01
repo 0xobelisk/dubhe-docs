@@ -17,7 +17,7 @@ const config: DocsThemeConfig = {
     key: "v1-0-0-rc1 pre-mainnet released",
   // text: <a href="/docs/release-notes">🎉 v1.6.5 Released →</a>,
     content: <a href="/docs/release-notes">🎉 v1.0.0-rc1 pre-mainnet Released →</a>,
-  }
+  },
 }
 
 export default config
