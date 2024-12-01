@@ -1,5 +1,8 @@
 export default {
-  "cli": "CLI",
-  "client": "Client",
-  "schemas": "Schemas",
+  "sui": "Sui",
+  "aptos": "Aptos",
+  "rooch": "Rooch",
+  "initia": "Initia",
+  "movement": "Movement",
+  "phad": "Phad",
 }

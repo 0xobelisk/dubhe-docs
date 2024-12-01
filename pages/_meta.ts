@@ -2,8 +2,6 @@ export default {
   "index": "Introduction",
   "quick-start": "Quick Start",
   "dubhe": "Dubhe",
-  "examples": "Examples",
-  "tutorials": "Tutorials",
   "faq": "FAQ",
   "roadmap": "Roadmap",
   "contribute": "Contribute",

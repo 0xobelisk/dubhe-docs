@@ -3,9 +3,9 @@ title: CLI - Dubhe
 description: Learn why we use SDK.
 ---
 
-## The Dubhe CLI
+## The Sui CLI
 
-The Dubhe CLI is used for building and developing a Dubhe Project.
+The Sui CLI is used for building and developing a Sui Project by Dubhe Engine.
 
 It comes with
 
@@ -78,16 +78,16 @@ The localnode uses the official `sui-test-validator` binary provided by sui to s
 The local rpc is `http://127.0.0.1:9000`
 
 ```bash
-obelisk localnode
+dubhe localnode
 ```
 
 ### `faucet`
 
-Connects to a Obelisk faucet service to fund an address.
+Connects to a Dubhe faucet service to fund an address.
 
 ```bash
-obelisk faucet --network <network:devnet/localnet>
-obelisk faucet --network <network:devnet/localnet> --recipient <address>
+dubhe faucet --network <network:devnet/localnet>
+dubhe faucet --network <network:devnet/localnet> --recipient <address>
 ```
 
 The default faucet service automatically gives test tokens to accounts in [`dotenv`](https://www.npmjs.com/package/dotenv).
