@@ -1,0 +1,71 @@
+# Create A Sui Dapp
+
+To begin, open a terminal or console at the location you plan to store your dapp. Use the pnpm create dubhe command to create an sui dapp by dubhe with the name 101:
+
+```bash
+pnpm create dubhe
+```
+
+![create-dapp](/sui/101.png)
+
+Running the previous command creates a directory with the name you provide (101 in this case). The command populates the new directory with a skeleton Move project that consists of a sources directory and a Move.toml manifest file. Open the manifest with a text editor to review its contents:
+
+```toml
+[package]
+name = "counter"
+version = "0.0.1"
+edition = "2024.beta"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.36.2" }
+Dubhe = { local = "../../localnet/dubhe-framework" }
+
+[addresses]
+sui = "0x2"
+dubhe = "0xe2793ee7dd5f05c73969577b0074f29aae3f70ab33c57dd42681ca29196e6a04"
+counter = "0x0"
+```
+
+The manifest file contents include available sections of the manifest and comments that provide additional information. In Move, you prepend the hash mark (#) to a line to denote a comment.
+
+- [package]: Contains metadata for the package. By default, the sui move new command populates only the name value of the metadata. In this case, the example passes my_first_package to the command, which becomes the name of the package. You can delete the first # of subsequent lines of the [package] section to provide values for the other available metadata fields.
+- [dependencies]: Lists the other packages that your package depends on to run. By default, the sui move new command lists the Sui package on GitHub (Testnet version) as the lone dependency.
+- [addresses]: Declares named addresses that your package uses. By default, the section includes the package you create with the sui move new command and an address of 0x0. This value can be left as-is and indicates that package addresses are automatically managed when published and upgraded.
+- [dev-dependencies]: Includes only comments that describe the section.
+- [dev-addresses]: Includes only comments that describe the section.
+
+## Defining the Dubhe Config
+
+You have a package now but it doesn't do anything. To make your package useful, you must add logic contained in .move source files that define modules. Use a text editor or the command line to create your first package source file named dubhe.config.ts in the sources directory of the package:
+
+```bash
+touch 101/dubhe.config.ts
+```
+
+```typescript
+import { DubheConfig } from '@0xobelisk/sui-common';
+
+export const dubheConfig = {
+  name: 'counter',
+  description: 'counter',
+  systems: ['counter'],
+  schemas: {
+    counter: {
+      structure: {
+        value: 'StorageValue<u32>',
+      },
+    },
+  },
+} as DubheConfig;
+```
+The comments in the preceding code highlight different parts of a typical Move source file.
+
+* Part 1: Imports - Code reuse is a necessity in modern programming. Move supports this concept with use aliases that allow your module to refer to types and functions declared in other modules. In this example, the module imports from object, transfer, and tx_context modules, but it does not need to do so explicitly, because the compiler provides these use statements by default. These modules are available to the package because the Move.toml file defines the Sui dependency (along with the sui named address) where they are defined.
+
+* Part 2: Struct declarations - Structs define types that a module can create or destroy. Struct definitions can include abilities provided with the has keyword. The structs in this example, for instance, have the key ability, which indicates that these structs are Sui objects that you can transfer between addresses. The store ability on the structs provides the ability to appear in other struct fields and be transferred freely.
+
+* Part 3: Module initializer - A special function that is invoked exactly once when the module publishes.
+
+* Part 4: Accessor functions - These functions allow the fields of the module's structs to be read from other modules.
+
+After you save the file, you have a complete Move package.
