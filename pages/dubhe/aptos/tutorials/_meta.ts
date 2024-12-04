@@ -1,3 +1,3 @@
 export default {
-  "first-dapp":"Your Frist Sui Dapp",
+  "first-dapp":"Your Frist aptos Dapp",
 }

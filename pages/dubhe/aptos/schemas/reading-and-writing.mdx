@@ -15,50 +15,50 @@ Assume the following configuration exists.
 
 ```tsx
 // definition of MySchema
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig } from "@0xobelisk/aptos-common";
 
 export const dubheConfig = {
   name: "example",
   description: "example desc",
   schemas: {
     student_management: {
-        data: [
-          {
-              name: "Class",
-              fields: {
-                    name: "string",
-                    teacher: "string",
-              },
+      data: [
+        {
+          name: "Class",
+          fields: {
+            name: "string",
+            teacher: "string",
           },
-          {
-              name: "Student",
-              fields: {
-                    name: "string",
-                    age: "u8",
-                    class: "Class",
-              },
-         }
+        },
+        {
+          name: "Student",
+          fields: {
+            name: "string",
+            age: "u8",
+            class: "Class",
+          },
+        },
       ],
-        structure: {
-         next_student_id: 'StorageValue<u32>',
-         student_info: 'StorageMap<u32, Student>',
-     },
-        events: [
-            {
-                name: "StudentAdded",
-                fields: {
-                        student_id: "u32",
-                        student: "Student",
-                },
-            },
-            {
-                name: "StudentRemoved",
-                fields: {
-                        student_id: "u32",
-                },
-            },
-        ]
-    }
+      structure: {
+        next_student_id: "StorageValue<u32>",
+        student_info: "StorageMap<u32, Student>",
+      },
+      events: [
+        {
+          name: "StudentAdded",
+          fields: {
+            student_id: "u32",
+            student: "Student",
+          },
+        },
+        {
+          name: "StudentRemoved",
+          fields: {
+            student_id: "u32",
+          },
+        },
+      ],
+    },
   },
 } as DubheConfig;
 ```
@@ -67,7 +67,7 @@ It's a good idea to make a contains judgement before adding and removing records
 
 **Existence of a record**
 
-```sui move
+```aptos move
 student_management.borrow_next_student_id().contains_key()
 student_management.borrow_student_info().contains_key(0)
 ```

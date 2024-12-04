@@ -21,7 +21,7 @@ Before using the SDK, make sure you have:
 First, define your contract's configuration using `DubheConfig`:
 
 ```typescript
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig } from '@0xobelisk/rooch-common';
 
 export const dubheConfig = {
   name: 'counter',
@@ -50,7 +50,7 @@ There are two ways to initialize the Dubhe client:
 1. Using dynamic metadata loading:
 
 ```typescript
-import { loadMetadata, Dubhe, NetworkType } from "@0xobelisk/sui-client";
+import { loadMetadata, Dubhe, NetworkType } from "@0xobelisk/rooch-client";
 
 const network = "devnet" as NetworkType;
 const packageId = "YOUR_PACKAGE_ID";
@@ -82,7 +82,7 @@ const dubhe = new Dubhe({
 To call contract methods:
 
 ```typescript
-import { Transaction } from "@0xobelisk/sui-client";
+import { Transaction } from "@0xobelisk/rooch-client";
 
 // Create transaction
 const tx = new Transaction();

@@ -4,7 +4,11 @@ import { useRouter } from 'next/router'
 import { useConfig } from 'nextra-theme-docs'
 
 const config: DocsThemeConfig = {
-  logo: <span>Dubhe Engine</span>,
+  logo: <img
+    src="/dubhe-logo.svg"
+    alt="Dubhe Engine Logo"
+    style={{ height: '32px' }}
+  />,
   project: {
     link: 'https://github.com/0xobelisk/dubhe',
   },

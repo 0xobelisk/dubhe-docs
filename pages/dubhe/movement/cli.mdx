@@ -5,14 +5,14 @@ description: Learn why we use SDK.
 
 ## The Dubhe CLI
 
-The Dubhe CLI is a development toolkit for building and managing Dubhe projects on the Sui blockchain.
+The Dubhe CLI is a development toolkit for building and managing Dubhe projects on the Movement blockchain.
 
 Core features:
 
 1. `schemagen`: Generate Dubhe schemas automatically from your store schemas configuration
-2. `publish`: Deploy your Dubhe projects to any Sui network (mainnet/testnet/devnet/localnet)
-3. `localnode`: Manage local Sui node for development
-4. `faucet`: Interface with Sui faucets to fund addresses on testnet/devnet/localnet
+2. `publish`: Deploy your Dubhe projects to any Movement network (mainnet/testnet/devnet/localnet)
+3. `localnode`: Manage local Movement node for development
+4. `faucet`: Interface with Movement faucets to fund addresses on testnet/devnet/localnet
 
 ## Installation
 
@@ -37,7 +37,7 @@ dubhe schemagen --configPath dubhe.config.ts
 
 ### `publish`
 
-Deploy a Dubhe contract project to the Sui blockchain.
+Deploy a Dubhe contract project to the Movement blockchain.
 
 This tool will use the `dubhe.config.ts` to detect all systems and schemas to deploy them to the specified network.
 
@@ -50,19 +50,19 @@ Before deploying the contract, please ensure:
 3. For localnet deployments, ensure your local node is running
 
 ```bash
-# to deploy sui locally
+# to deploy Movement locally
 dubhe publish --network localnet
-# to deploy to sui devnet
+# to deploy to Movement devnet
 dubhe publish --network devnet
-# to deploy to sui testnet
+# to deploy to Movement testnet
 dubhe publish --network testnet
-# to deploy to sui mainnet
+# to deploy to Movement mainnet
 dubhe publish --network mainnet
 ```
 
 ### `localnode`
 
-The localnode command manages your local Sui node using the official `sui` binary.
+The localnode command manages your local Movement node using the official `movement` binary.
 
 Local RPC endpoint: `http://127.0.0.1:9000`
 

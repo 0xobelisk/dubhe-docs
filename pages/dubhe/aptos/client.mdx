@@ -5,7 +5,7 @@ description: Learn why we use SDK.
 
 # Dubhe Client SDK
 
-Dubhe is a client-agnostic SDK that supports various platforms including browsers, Node.js, and the COCOS game engine. It provides a simple interface to interact with your Sui Move contracts.
+Dubhe is a client-agnostic SDK that supports various platforms including browsers, Node.js, and the COCOS game engine. It provides a simple interface to interact with your aptos Move contracts.
 
 ## Getting Started
 
@@ -21,16 +21,16 @@ Before using the SDK, make sure you have:
 First, define your contract's configuration using `DubheConfig`:
 
 ```typescript
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig } from "@0xobelisk/aptos-common";
 
 export const dubheConfig = {
-  name: 'counter',
-  description: 'counter',
-  systems: ['counter'],
+  name: "counter",
+  description: "counter",
+  systems: ["counter"],
   schemas: {
     counter: {
       structure: {
-        value: 'StorageValue<u32>',
+        value: "StorageValue<u32>",
       },
     },
   },
@@ -50,30 +50,30 @@ There are two ways to initialize the Dubhe client:
 1. Using dynamic metadata loading:
 
 ```typescript
-import { loadMetadata, Dubhe, NetworkType } from "@0xobelisk/sui-client";
+import { loadMetadata, Dubhe, NetworkType } from "@0xobelisk/aptos-client";
 
 const network = "devnet" as NetworkType;
 const packageId = "YOUR_PACKAGE_ID";
 
 const metadata = await loadMetadata(network, packageId);
 const dubhe = new Dubhe({
-    networkType: network,
-    packageId: packageId,
-    metadata: metadata,
-    secretKey: privkey
+  networkType: network,
+  packageId: packageId,
+  metadata: metadata,
+  secretKey: privkey,
 });
 ```
 
 2. Using pre-saved metadata (recommended for better performance):
 
 ```typescript
-import metadata from './metadata.json';
+import metadata from "./metadata.json";
 
 const dubhe = new Dubhe({
-    networkType: network,
-    packageId: packageId,
-    metadata: metadata,
-    secretKey: privkey
+  networkType: network,
+  packageId: packageId,
+  metadata: metadata,
+  secretKey: privkey,
 });
 ```
 
@@ -82,11 +82,13 @@ const dubhe = new Dubhe({
 To call contract methods:
 
 ```typescript
-import { Transaction } from "@0xobelisk/sui-client";
+import { Transaction } from "@0xobelisk/aptos-client";
 
 // Create transaction
 const tx = new Transaction();
-const params = [/* your parameters */];
+const params = [
+  /* your parameters */
+];
 
 // Execute transaction
 const response = await dubhe.tx.counter_system.inc(tx, params);
@@ -102,7 +104,9 @@ To query contract state:
 
 ```typescript
 const tx = new Transaction();
-const params = [/* your parameters */];
+const params = [
+  /* your parameters */
+];
 const result = await dubhe.query.counter_system.get(tx, params);
 
 // For BCS encoded results
@@ -144,7 +148,7 @@ const decodedState = dubhe.view(result);
 
 ⚠️ **Important Note**:
 
-1. The current implementation cannot automatically decode enum types due to limitations in Sui metadata.
+1. The current implementation cannot automatically decode enum types due to limitations in aptos metadata.
 2. Some complex nested structures might require additional handling.
 
 ### Entity Key Generation
@@ -156,7 +160,7 @@ Dubhe provides three methods for generating entity keys:
 const objectKey = await dubhe.entity_key_from_object(objectId);
 
 // From string data
-const bytesKey = await dubhe.entity_key_from_bytes('hello');
+const bytesKey = await dubhe.entity_key_from_bytes("hello");
 
 // From number
 const numberKey = await dubhe.entity_key_from_u256(123);
@@ -167,7 +171,8 @@ const numberKey = await dubhe.entity_key_from_u256(123);
 To query objects owned by a specific address:
 
 ```typescript
-const owner = "0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e";
+const owner =
+  "0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e";
 const ownedObjects = await dubhe.getOwnedObjects(owner);
 ```
 
