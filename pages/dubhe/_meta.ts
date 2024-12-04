@@ -4,5 +4,4 @@ export default {
   "rooch": "Rooch",
   "initia": "Initia",
   "movement": "Movement",
-  "phad": "Phad",
 }
