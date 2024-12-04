@@ -3,7 +3,6 @@ export default {
   "quick-start": "Quick Start",
   "dubhe": "Dubhe",
   "faq": "FAQ",
-  "roadmap": "Roadmap",
   "contribute": "Contribute",
   "community": {
     "title": "Community ↗",

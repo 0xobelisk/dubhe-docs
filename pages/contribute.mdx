@@ -1,17 +1,36 @@
 ---
-title: Introduction
-description: Start Building Dapp with Engine
+title: Contribute
+description: Start Building Dapp with Dubhe
 ---
 
-# What’s Dubhe Engine?
+# Contribute
 
-Dubhe Engine is a modular application production engine that can operate within any modular network ecosystem.
+We'd love your support in improving Dubhe! This monorepo includes all of Dubhe's source code, and pull requests are always welcome. To discuss new features or changes join our Discord(opens in a new tab).
 
-## Composable Technology Stacks
+### Local development setup
 
-- [merak](/engine/docs/merak) is a privacy-preserving DeFi liquidity hub built on dubhe engine.
-- [phad](/engine/docs/phad) is a privacy-first framework for building confidential Move applications with ZK and FHE technologies by cyferio sdk.
+The following steps are only necessary if you want to contribute to Dubhe. 
 
-## Next Steps
+1. Install Rust : [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
 
-Want to learn more about Dubhe Engine? Here's a deep dive on what we think makes it special.
+2. Install pnpm
+
+```bash
+npm install pnpm --global
+```
+
+4. Clone the Dubhe monorepo
+
+```
+git clone https://github.com/0xobelisk/dubhe.git
+```
+
+5. Install Dubhe dependencies and setup local environment
+
+```
+cd dubhe && pnpm install
+```
+
+### Pull requests
+
+Obelisk follows the [conventional commit specification](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages and PR titles. Please keep the scope of your PR small (rather open multiple small PRs than one huge PR) and follow the conventional commit spec.
