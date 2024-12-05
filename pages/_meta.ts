@@ -21,7 +21,7 @@ export default {
       },
       "telegram": {
         "title": "Telegram",
-        "href": "https://t.me/obeliskengine",
+        "href": "https://t.me/dubheengine",
         "newWindow": true
       }
     },
