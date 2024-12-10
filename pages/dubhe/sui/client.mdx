@@ -21,16 +21,16 @@ Before using the SDK, make sure you have:
 First, define your contract's configuration using `DubheConfig`:
 
 ```typescript
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig } from "@0xobelisk/sui-common";
 
 export const dubheConfig = {
-  name: 'counter',
-  description: 'counter',
-  systems: ['counter'],
+  name: "counter",
+  description: "counter",
+  systems: ["counter"],
   schemas: {
     counter: {
       structure: {
-        value: 'StorageValue<u32>',
+        value: "StorageValue<u32>",
       },
     },
   },
@@ -57,23 +57,23 @@ const packageId = "YOUR_PACKAGE_ID";
 
 const metadata = await loadMetadata(network, packageId);
 const dubhe = new Dubhe({
-    networkType: network,
-    packageId: packageId,
-    metadata: metadata,
-    secretKey: privkey
+  networkType: network,
+  packageId: packageId,
+  metadata: metadata,
+  secretKey: privkey,
 });
 ```
 
 2. Using pre-saved metadata (recommended for better performance):
 
 ```typescript
-import metadata from './metadata.json';
+import metadata from "./metadata.json";
 
 const dubhe = new Dubhe({
-    networkType: network,
-    packageId: packageId,
-    metadata: metadata,
-    secretKey: privkey
+  networkType: network,
+  packageId: packageId,
+  metadata: metadata,
+  secretKey: privkey,
 });
 ```
 
@@ -86,7 +86,9 @@ import { Transaction } from "@0xobelisk/sui-client";
 
 // Create transaction
 const tx = new Transaction();
-const params = [/* your parameters */];
+const params = [
+  /* your parameters */
+];
 
 // Execute transaction
 const response = await dubhe.tx.counter_system.inc(tx, params);
@@ -102,7 +104,9 @@ To query contract state:
 
 ```typescript
 const tx = new Transaction();
-const params = [/* your parameters */];
+const params = [
+  /* your parameters */
+];
 const result = await dubhe.query.counter_system.get(tx, params);
 
 // For BCS encoded results
@@ -156,7 +160,7 @@ Dubhe provides three methods for generating entity keys:
 const objectKey = await dubhe.entity_key_from_object(objectId);
 
 // From string data
-const bytesKey = await dubhe.entity_key_from_bytes('hello');
+const bytesKey = await dubhe.entity_key_from_bytes("hello");
 
 // From number
 const numberKey = await dubhe.entity_key_from_u256(123);
@@ -167,7 +171,8 @@ const numberKey = await dubhe.entity_key_from_u256(123);
 To query objects owned by a specific address:
 
 ```typescript
-const owner = "0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e";
+const owner =
+  "0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e";
 const ownedObjects = await dubhe.getOwnedObjects(owner);
 ```
 
