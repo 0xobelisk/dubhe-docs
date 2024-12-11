@@ -9,10 +9,10 @@ The Dubhe CLI is a development toolkit for building and managing Dubhe projects 
 
 Core features:
 
-1. `schemagen`: Generate Dubhe schemas automatically from your store schemas configuration
-2. `publish`: Deploy your Dubhe projects to any Initia network (mainnet/testnet/devnet/localnet)
-3. `localnode`: Manage local Initia node for development
-4. `faucet`: Interface with Initia faucets to fund addresses on testnet/devnet/localnet
+1. [`publish`](#publish): Deploy your Dubhe projects to any Initia network (mainnet/testnet/devnet/localnet)
+2. [`localnode`](#localnode): Manage local Initia node for development
+3. [`faucet`](#faucet): Interface with Initia faucets to fund addresses on testnet/devnet/localnet
+4. [`test`](#test): Run tests for Dubhe contracts
 
 ## Installation
 
@@ -20,28 +20,15 @@ The CLI should be installed as a project dependency rather than globally. When y
 
 ## Using the CLI
 
-Some commands expect a dubhe config in the same folder where the CLI is being executed. This includes `schemagen` and `publish`.
+Some commands expect a dubhe config in the same folder where the CLI is being executed. This includes `publish`.
 
-`faucet`, and `localnode` can be executed anywhere.
+`faucet` and `localnode` can be executed anywhere.
 
 ## Commands
 
-### `schemagen`
-
-Generates Store libraries from a `dubhe.config.ts` file. See the [Store Config and `schemagen` documentation](../schemas/config) in the Store section for more details.
-
-```bash
-# in a folder with a dubhe.config.ts
-dubhe schemagen --configPath dubhe.config.ts
-```
-
 ### `publish`
 
-Deploy a Dubhe contract project to the Initia blockchain.
-
-This tool will use the `dubhe.config.ts` to detect all systems and schemas to deploy them to the specified network.
-
-When using the deployer, you must set the private key of the deployer using the `PRIVATE_KEY` environment variable. You can make this easier by using [`dotenv`](https://www.npmjs.com/package/dotenv) before running `dubhe publish` in your deployment script.
+Deploy Dubhe contracts to Initia network. This tool will use the `dubhe.config.ts` to detect all systems and schemas to deploy them to the specified network.
 
 Before deploying the contract, please ensure:
 
@@ -50,66 +37,81 @@ Before deploying the contract, please ensure:
 3. For localnet deployments, ensure your local node is running
 
 ```bash
-# to deploy Initia locally
-dubhe publish --network localnet
-# to deploy to Initia devnet
-dubhe publish --network devnet
-# to deploy to Initia testnet
-dubhe publish --network testnet
-# to deploy to Initia mainnet
-dubhe publish --network mainnet
+dubhe publish --network <network> [--config-path <path>] [--named-addresses <addresses>]
+
+Options:
+  --network           Target network (mainnet/testnet/devnet/localnet)
+  --config-path       Config file path (default: "dubhe.config.ts")
+  --named-addresses   Named addresses in format "name1=address1,name2=address2"
 ```
 
 ### `localnode`
 
-The localnode command manages your local Initia node using the official `initia` binary.
-
-Local RPC endpoint: `http://127.0.0.1:9000`
-
-**Supported subcommands:**
-
-- `start`: Start a local node
-
-  - Optional flag `--background` or `-b`: Run the node in background mode
-
-- `stop`: Stop the running local node
-- `status`: Check the local node running status
-- `restart`: Restart the local node
-  - Optional flag `--background` or `-b`: Run the restarted node in background mode
-
-**Usage examples:**
+Manage local Initia node.
 
 ```bash
-# Start a local node
-dubhe localnode start
+dubhe localnode <action> [options]
 
-# Start a local node in background
-dubhe localnode start -b
+Actions:
+  start     Start local node
+  stop      Stop local node
+  status    Check node status
+  restart   Restart local node
+  clean     Clean local node state
 
-# Check node status
-dubhe localnode status
-
-# Stop the node
-dubhe localnode stop
-
-# Restart the node
-dubhe localnode restart
-
-# Restart the node in background
-dubhe localnode restart -b
+Options:
+  --background, -b    Run node in background mode
 ```
+
+Local RPC endpoint: `http://127.0.0.1:9000`
 
 Note: Make sure your local node is running properly before using other commands that require a local node (e.g., `publish --network localnet`).
 
 ### `faucet`
 
-Connects to a Dubhe faucet service to fund an address.
+Request test tokens from the Initia faucet. The default faucet service automatically gives test tokens to accounts in `.env`.
 
 ```bash
-dubhe faucet --network <network:testnet/devnet/localnet>
-dubhe faucet --network <network:testnet/devnet/localnet> --recipient <address>
+dubhe faucet --network <network> [--recipient <address>]
+
+Options:
+  --network     Network to request tokens on (testnet/devnet/localnet, default: localnet)
+  --recipient   Optional recipient address (uses PRIVATE_KEY env if not specified)
 ```
 
-The default faucet service automatically gives test tokens to accounts in [`dotenv`](https://www.npmjs.com/package/dotenv).
+The faucet will:
 
-To fund an address on the testnet/devnet/localnet, run `dubhe faucet --recipient <address>`
+1. Fund the specified address with 10 INIT
+2. Wait for transaction confirmation
+3. Display the updated balance
+
+### `test`
+
+Run tests for Dubhe contracts.
+
+```bash
+dubhe test [--package-path <path>]
+
+Options:
+  --package-path    Path to package directory (default: ".")
+```
+
+## Environment Setup
+
+Some commands require environment variables to be set:
+
+- `PRIVATE_KEY`: Required for deployment and faucet operations when no recipient is specified
+- Can be set up using a `.env` file in your project root
+
+When using the deployer or faucet, you must set the private key using the `PRIVATE_KEY` environment variable. You can make this easier by using [`dotenv`](https://www.npmjs.com/package/dotenv) before running commands.
+
+## Network Support
+
+The CLI supports the following networks:
+
+- Mainnet
+- Testnet
+- Devnet
+- Localnet
+
+For testnet/devnet/localnet operations, you can get test tokens using the `faucet` command.

@@ -86,16 +86,27 @@ import { Transaction } from "@0xobelisk/sui-client";
 
 // Create transaction
 const tx = new Transaction();
-const params = [
-  /* your parameters */
-];
 
-// Execute transaction
-const response = await dubhe.tx.counter_system.inc(tx, params);
+// Execute transaction with struct parameters
+const response = await dubhe.tx.counter_system.inc({
+  tx,
+  params: [
+    /* your parameters */
+  ],
+  typeArguments: ["0x2::coin::Coin<0x2::sui::SUI>"], // optional
+  isRaw: false, // optional, defaults to false
+});
 
 // For wallet integration
-await dubhe.tx.counter_system.inc(tx, params, undefined, true);
-const response = await dubhe.signAndSendTxn(tx);
+const walletTx = await dubhe.tx.counter_system.inc({
+  tx,
+  params: [
+    /* your parameters */
+  ],
+  typeArguments: [],
+  isRaw: true,
+});
+const response = await dubhe.signAndSendTxn(walletTx);
 ```
 
 ### Querying Data
@@ -103,14 +114,67 @@ const response = await dubhe.signAndSendTxn(tx);
 To query contract state:
 
 ```typescript
+// Create transaction
 const tx = new Transaction();
-const params = [
-  /* your parameters */
-];
-const result = await dubhe.query.counter_system.get(tx, params);
+
+// Query with struct parameters
+const result = await dubhe.query.counter_system.get({
+  tx,
+  params: [
+    /* your parameters */
+  ],
+  typeArguments: [], // optional
+  isRaw: false, // optional
+});
 
 // For BCS encoded results
 const decodedData = dubhe.view(result);
+```
+
+### Parameter Structure
+
+Both query and transaction methods accept a parameter structure with the following fields:
+
+```typescript
+{
+  tx: Transaction;           // Required: Transaction instance
+  params?: TransactionArg[]; // Optional: Array of transaction arguments
+  typeArguments?: string[];  // Optional: Generic type arguments
+  isRaw?: boolean;          // Optional: Return raw transaction instead of executing
+}
+```
+
+### Example Usage
+
+Here are some practical examples:
+
+```typescript
+// Simple query without parameters
+const tx1 = new Transaction();
+const query1 = await dubhe.query.funt.get_u8({
+  tx: tx1,
+});
+const data1 = dubhe.view(query1);
+
+// Query with parameters
+const tx2 = new Transaction();
+const query2 = await dubhe.query.funt.get_struct({
+  tx: tx2,
+  params: [
+    /* parameters */
+  ],
+  typeArguments: ["0x2::coin::Coin<0x2::sui::SUI>"],
+});
+const data2 = dubhe.view(query2);
+
+// Transaction with raw output
+const tx3 = new Transaction();
+const rawTx = await dubhe.tx.example_system.increase({
+  tx: tx3,
+  params: [tx3.pure("0x123...")],
+  isRaw: true,
+});
+const response = await dubhe.signAndSendTxn(rawTx);
 ```
 
 ### BCS Data Decoding
@@ -150,21 +214,6 @@ const decodedState = dubhe.view(result);
 
 1. The current implementation cannot automatically decode enum types due to limitations in Sui metadata.
 2. Some complex nested structures might require additional handling.
-
-### Entity Key Generation
-
-Dubhe provides three methods for generating entity keys:
-
-```typescript
-// From object ID
-const objectKey = await dubhe.entity_key_from_object(objectId);
-
-// From string data
-const bytesKey = await dubhe.entity_key_from_bytes("hello");
-
-// From number
-const numberKey = await dubhe.entity_key_from_u256(123);
-```
 
 ### Query Owned Objects
 
