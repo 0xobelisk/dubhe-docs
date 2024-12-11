@@ -194,7 +194,7 @@ module counter::digital_booster {
 
 First we do an error check, the input number must be greater than 0.
 
-```sui move filename="dubhe.config.ts" {3, 6-7} copy showLineNumbers
+```sui move filename="digital_booster.move" {3, 6-7} copy showLineNumbers
 module counter::digital_booster {
     use counter::booster_schema::Booster;
     use counter::booster_error_invalid_number;
@@ -221,7 +221,7 @@ booster.borrow_mut_number().mutate!(|old_number|
 
 We use the second.
 
-```sui move filename="dubhe.config.ts" {9-12} copy showLineNumbers
+```sui move filename="digital_booster.move" {9-12} copy showLineNumbers
     module counter::digital_booster {
     use counter::booster_schema::Booster;
     use counter::booster_error_invalid_number;
@@ -239,7 +239,7 @@ We use the second.
 ```
 
 Finally we add events to the contract.
-```sui move filename="dubhe.config.ts" {4, 15-16} copy showLineNumbers
+```sui move filename="digital_booster.move" {4, 15-16} copy showLineNumbers
     module counter::digital_booster {
     use counter::booster_schema::Booster;
     use counter::booster_error_invalid_number;
@@ -265,7 +265,7 @@ By this point we need to write the contents of the deploy_hook, which will be au
 dubhe-template-project/contracts/counter/sources/scripts/deploy_hook.move
 ```
 
-```sui move filename="dubhe.config.ts" {67} copy showLineNumbers
+```sui move filename="digital_booster.move" {67} copy showLineNumbers
     #[allow(lint(share_owned))]
 
     module counter::deploy_hook {
