@@ -40,7 +40,7 @@ export const dubheConfig = {
 Generate the contract code using CLI:
 
 ```bash
-dubhe schemagen --configPath dubhe.config.ts
+pnpm dubhe schemagen --configPath dubhe.config.ts
 ```
 
 ### Initializing the Client
@@ -82,19 +82,22 @@ const dubhe = new Dubhe({
 To call contract methods:
 
 ```typescript
-import { Transaction } from "@0xobelisk/aptos-client";
+import { PendingTransactionResponse } from "@0xobelisk/aptos-client";
 
-// Create transaction
-const tx = new Transaction();
 const params = [
   /* your parameters */
 ];
 
 // Execute transaction
-const response = await dubhe.tx.counter_system.inc(tx, params);
+const response =
+  (await dubhe.tx.counter_system.increase()) as PendingTransactionResponse;
+console.log(response.hash);
+await dubhe.waitForTransaction(response.hash);
 
 // For wallet integration
-await dubhe.tx.counter_system.inc(tx, params, undefined, true);
+await dubhe.tx.counter_system.inc({
+  isRaw: true,
+});
 const response = await dubhe.signAndSendTxn(tx);
 ```
 
@@ -103,19 +106,8 @@ const response = await dubhe.signAndSendTxn(tx);
 To query contract state:
 
 ```typescript
-const tx = new Transaction();
-const params = [
-  /* your parameters */
-];
-const result = await dubhe.query.counter_system.get(tx, params);
-
-// For BCS encoded results
-const decodedData = dubhe.view(result);
+const result = await dubhe.query.counter_system.get();
 ```
-
-### BCS Data Decoding
-
-The SDK provides a `view()` method to decode BCS-encoded return values from contract queries.
 
 #### Supported Types
 
@@ -126,55 +118,6 @@ The SDK provides a `view()` method to decode BCS-encoded return values from cont
 - Struct
 - Option
 - Custom objects
-
-#### Example with Complex Types
-
-```typescript
-// Example contract return type
-struct GameState {
-    score: u64,
-    player_name: String,
-    is_active: bool,
-    items: vector<Item>
-}
-
-// Query and decode
-const tx = new Transaction();
-const result = await dubhe.query.game_system.get_state(tx, params);
-const decodedState = dubhe.view(result);
-```
-
-#### Known Limitations
-
-⚠️ **Important Note**:
-
-1. The current implementation cannot automatically decode enum types due to limitations in aptos metadata.
-2. Some complex nested structures might require additional handling.
-
-### Entity Key Generation
-
-Dubhe provides three methods for generating entity keys:
-
-```typescript
-// From object ID
-const objectKey = await dubhe.entity_key_from_object(objectId);
-
-// From string data
-const bytesKey = await dubhe.entity_key_from_bytes("hello");
-
-// From number
-const numberKey = await dubhe.entity_key_from_u256(123);
-```
-
-### Query Owned Objects
-
-To query objects owned by a specific address:
-
-```typescript
-const owner =
-  "0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e";
-const ownedObjects = await dubhe.getOwnedObjects(owner);
-```
 
 ## Best Practices
 
