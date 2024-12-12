@@ -40,7 +40,7 @@ export const dubheConfig = {
 Generate the contract code using CLI:
 
 ```bash
-dubhe schemagen --configPath dubhe.config.ts
+pnpm dubhe schemagen
 ```
 
 ### Initializing the Client
@@ -206,6 +206,19 @@ struct GameState {
 const tx = new Transaction();
 const result = await dubhe.query.game_system.get_state(tx, params);
 const decodedState = dubhe.view(result);
+```
+
+### Transaction Structure
+
+Both query and transaction methods accept a parameter structure with the following fields:
+
+```typescript
+{
+  tx: Transaction;           // Required: Transaction instance
+  params?: (TransactionArgument | SerializedBcs<any>)[];    // Optional: Array of parameters
+  typeArguments?: string[];  // Optional: Generic type arguments
+  isRaw?: boolean;          // Optional: Return raw transaction instead of executing
+}
 ```
 
 #### Known Limitations
