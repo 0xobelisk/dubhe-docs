@@ -1,17 +1,25 @@
 ---
 title: Client - Dubhe
-description: Learn why we use SDK.
+description: Learn how to use the Rooch SDK.
 ---
 
-# Dubhe Client SDK
+# Dubhe Client SDK for Rooch
 
-Dubhe is a client-agnostic SDK that supports various platforms including browsers, Node.js, and the COCOS game engine. It provides a simple interface to interact with your Sui Move contracts.
+Before getting started with Dubhe Client SDK, please install the required dependencies:
+
+```bash
+pnpm install @0xobelisk/rooch-client @0xobelisk/rooch-common
+```
+
+> Note: @0xobelisk/rooch-common contains essential configuration type definitions like DubheConfig, which are necessary for contract development.
+
+Dubhe provides a client SDK for interacting with Rooch Move contracts across various platforms including browsers, Node.js, and COCOS game engine.
 
 ## Getting Started
 
 ### Prerequisites
 
-Before using the SDK, make sure you have:
+Before using the SDK, ensure you have:
 
 1. Created and deployed your contract using the Dubhe CLI
 2. Obtained the `packageId` after deployment
@@ -21,16 +29,16 @@ Before using the SDK, make sure you have:
 First, define your contract's configuration using `DubheConfig`:
 
 ```typescript
-import { DubheConfig } from '@0xobelisk/rooch-common';
+import { DubheConfig } from "@0xobelisk/rooch-common";
 
 export const dubheConfig = {
-  name: 'counter',
-  description: 'counter',
-  systems: ['counter'],
+  name: "counter",
+  description: "counter",
+  systems: ["counter"],
   schemas: {
     counter: {
       structure: {
-        value: 'StorageValue<u32>',
+        value: "StorageValue<u32>",
       },
     },
   },
@@ -40,60 +48,82 @@ export const dubheConfig = {
 Generate the contract code using CLI:
 
 ```bash
-dubhe schemagen --configPath dubhe.config.ts
+pnpm dubhe schemagen
 ```
 
 ### Initializing the Client
 
-There are two ways to initialize the Dubhe client:
-
-1. Using dynamic metadata loading:
+The Dubhe client can be initialized in several ways:
 
 ```typescript
-import { loadMetadata, Dubhe, NetworkType } from "@0xobelisk/rooch-client";
+import { Dubhe, NetworkType } from "@0xobelisk/rooch-client";
 
-const network = "devnet" as NetworkType;
-const packageId = "YOUR_PACKAGE_ID";
-
-const metadata = await loadMetadata(network, packageId);
+// Using mnemonics
 const dubhe = new Dubhe({
-    networkType: network,
-    packageId: packageId,
-    metadata: metadata,
-    secretKey: privkey
+  mnemonics: "your mnemonic words...",
+  networkType: "mainnet",
+  packageId: "YOUR_PACKAGE_ID",
+  metadata: metadata,
+});
+
+// Using secret key
+const dubhe = new Dubhe({
+  secretKey: "your-secret-key",
+  networkType: "mainnet",
+  packageId: "YOUR_PACKAGE_ID",
+  metadata: metadata,
 });
 ```
 
-2. Using pre-saved metadata (recommended for better performance):
+### Account Management
+
+The SDK provides comprehensive account management features:
 
 ```typescript
-import metadata from './metadata.json';
+// Get current address
+const address = dubhe.currentAddress();
 
-const dubhe = new Dubhe({
-    networkType: network,
-    packageId: packageId,
-    metadata: metadata,
-    secretKey: privkey
+// Get address in different formats
+const bech32Address = dubhe.getBech32Address();
+const hexAddress = dubhe.getHexAddress();
+const bitcoinAddress = dubhe.getBitcoinAddress();
+
+// Switch account using derive path
+dubhe.switchAccount({
+  accountIndex: 2,
+  isExternal: false,
+  addressIndex: 10,
 });
+
+// Get balance
+const balance = await dubhe.getBalance(address);
 ```
 
 ### Executing Transactions
 
-To call contract methods:
+To interact with contract methods:
 
 ```typescript
 import { Transaction } from "@0xobelisk/rooch-client";
 
 // Create transaction
 const tx = new Transaction();
-const params = [/* your parameters */];
 
 // Execute transaction
-const response = await dubhe.tx.counter_system.inc(tx, params);
+const response = await dubhe.tx.counter_system.inc({
+  tx,
+  params: ["param1", "param2"],
+  typeArguments: ["type1", "type2"],
+});
 
-// For wallet integration
-await dubhe.tx.counter_system.inc(tx, params, undefined, true);
-const response = await dubhe.signAndSendTxn(tx);
+// For wallet integration (raw transaction)
+const rawTx = await dubhe.tx.counter_system.inc({
+  tx,
+  params: ["param1", "param2"],
+  typeArguments: ["type1", "type2"],
+  isRaw: true,
+});
+const response = await dubhe.signAndExecuteTransaction(rawTx);
 ```
 
 ### Querying Data
@@ -101,81 +131,87 @@ const response = await dubhe.signAndSendTxn(tx);
 To query contract state:
 
 ```typescript
-const tx = new Transaction();
-const params = [/* your parameters */];
-const result = await dubhe.query.counter_system.get(tx, params);
-
-// For BCS encoded results
-const decodedData = dubhe.view(result);
+// Simple query
+const result = await dubhe.query.counter_system.get({
+  params: ["param1", "param2"],
+  typeArguments: ["type1", "type2"],
+});
 ```
 
-### BCS Data Decoding
+### Transaction Structure
 
-The SDK provides a `view()` method to decode BCS-encoded return values from contract queries.
-
-#### Supported Types
-
-- Basic types (u8, u16, u32, u64, u128, u256)
-- Boolean
-- String
-- Vector
-- Struct
-- Option
-- Custom objects
-
-#### Example with Complex Types
+Both query and transaction methods accept a parameter structure with the following fields:
 
 ```typescript
-// Example contract return type
-struct GameState {
-    score: u64,
-    player_name: String,
-    is_active: bool,
-    items: vector<Item>
+{
+  tx: Transaction;           // Required: Transaction instance
+  signer?: Secp256k1Keypair; // Optional: Transaction signer
+  params?: Args[];          // Optional: Array of parameters
+  typeArguments?: TypeTag[]; // Optional: Generic type arguments
+  isRaw?: boolean;          // Optional: Return raw transaction instead of executing
 }
-
-// Query and decode
-const tx = new Transaction();
-const result = await dubhe.query.game_system.get_state(tx, params);
-const decodedState = dubhe.view(result);
 ```
 
-#### Known Limitations
+### Chain Interaction
 
-⚠️ **Important Note**:
-
-1. The current implementation cannot automatically decode enum types due to limitations in Sui metadata.
-2. Some complex nested structures might require additional handling.
-
-### Entity Key Generation
-
-Dubhe provides three methods for generating entity keys:
+The SDK provides methods to interact with the chain:
 
 ```typescript
-// From object ID
-const objectKey = await dubhe.entity_key_from_object(objectId);
+// Get chain ID
+const chainId = await dubhe.getChainId();
 
-// From string data
-const bytesKey = await dubhe.entity_key_from_bytes('hello');
+// Get RPC API version
+const apiVersion = await dubhe.getRpcApiVersion();
 
-// From number
-const numberKey = await dubhe.entity_key_from_u256(123);
+// Get network information
+const network = dubhe.getNetwork();
+const nodeUrl = dubhe.getFullNodeUrl();
+
+// Query states
+const states = await dubhe.getStates({
+  // state parameters
+});
+
+// Query events
+const events = await dubhe.getEvents({
+  // event parameters
+});
 ```
 
-### Query Owned Objects
+### Asset Transfer
 
-To query objects owned by a specific address:
+The SDK supports asset transfers:
 
 ```typescript
-const owner = "0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e";
-const ownedObjects = await dubhe.getOwnedObjects(owner);
+// Transfer coins
+await dubhe.transfer({
+  recipient: "recipient-address",
+  amount: 1000,
+  coinType: "0x3::gas_coin::RGas",
+});
+
+// Transfer objects
+await dubhe.transferObject({
+  recipient: "recipient-address",
+  objectId: "object-id",
+  objectType: "object-type",
+});
 ```
 
 ## Best Practices
 
-1. Use pre-saved metadata for better performance in production
-2. Implement proper error handling for BCS decoding
-3. Consider the limitations of enum type handling when designing your contract return types
+1. Always handle transaction responses properly
+2. Implement proper error handling
+3. Use appropriate network types for different environments
+4. Manage account derivation paths carefully
+5. Consider using raw transactions for wallet integrations
+
+## Known Limitations
+
+⚠️ **Important Notes**:
+
+1. Some complex transaction types might require additional handling
+2. Ensure proper error handling for network interactions
 
 ## Support
 
