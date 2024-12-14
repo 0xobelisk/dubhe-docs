@@ -103,7 +103,7 @@ const Home = () => {
       // Call the increment function on the smart contract
       (await dubhe.tx.counter_system.inc(
         tx,
-        [tx.object(Counter_Object_Id)],
+        [tx.object(Counter_Object_Id), tx.pure.u32(1)],
         undefined,
         true
       )) as TransactionResult;
@@ -187,7 +187,6 @@ like this:
 ## Next Step
 
 Click Increment button, and you will see the transaction is sent to the chain.
-
 
 Processing:
 ![processing](/sui/process.png)

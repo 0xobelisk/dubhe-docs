@@ -43,13 +43,26 @@ import { DubheConfig } from "@0xobelisk/sui-common";
 
 export const dubheConfig = {
   name: "counter",
-  description: "counter",
-  systems: ["counter"],
+  description: "counter contract",
   schemas: {
     counter: {
       structure: {
         value: "StorageValue<u32>",
       },
+      events: [
+        {
+          name: "Increment",
+          fields: {
+            value: "u32",
+          },
+        },
+      ],
+      errors: [
+        {
+          name: "InvalidIncrement",
+          message: "Number can't be incremented, must be more than 0",
+        },
+      ],
     },
   },
 } as DubheConfig;
@@ -67,19 +80,29 @@ pnpm run schema:gen
 The generated project structure looks like this:
 
 ```
-contracts/counter/
-├── sources/
-│   ├── codegen/
-│   │   ├── schemas/
-│   │   │   ├── counter.move
-│   │   │   ├── dapp_key.move
-│   │   │   └── schema_hub.move
-│   │   └── script/
-│   │       ├── deploy_hook.move
-│   │       └── migrate.move
-│   └── systems/
-│       └── counter.move
-└── Move.toml
+contracts/counter
+├── Move.toml
+└── sources
+    ├── codegen
+    │   ├── errors
+    │   │   └── counter_error_invalid_increment.move
+    │   ├── events
+    │   │   └── counter_event_increment.move
+    │   └── schemas
+    │       ├── counter.move
+    │       └── default
+    │           └── dapp
+    │               ├── metadata.move
+    │               ├── schema.move
+    │               └── system.move
+    ├── scripts
+    │   ├── deploy_hook.move
+    │   └── migrate.move
+    ├── systems
+    │   └── counter.move
+    └── tests
+        ├── counter.move
+        └── init.move
 ```
 
 After running `pnpm run schema:gen`, Dubhe CLI will automatically generate the following files:
@@ -88,7 +111,7 @@ After running `pnpm run schema:gen`, Dubhe CLI will automatically generate the f
   - `counter.move`: Counter schema implementation
   - `dapp_key.move`: DApp key definitions
   - `schema_hub.move`: Schema hub for managing all schemas
-- `sources/codegen/script/`: Contains deployment and migration scripts
+- `sources/scripts/`: Contains deployment and migration scripts
   - `deploy_hook.move`: Deployment hooks
   - `migrate.move`: Migration logic
 - `sources/systems/`: Contains the system implementation files
