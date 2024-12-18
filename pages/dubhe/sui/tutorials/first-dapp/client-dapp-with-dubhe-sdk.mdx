@@ -77,9 +77,10 @@ const Home = () => {
     // Create new transaction instance
     const tx = new Transaction();
     // Query the counter value using the counter schema
-    const query_value = (await dubhe.query.counter_schema.get_value(tx, [
-      tx.object(Counter_Object_Id),
-    ])) as DevInspectResults;
+    const query_value = (await dubhe.query.counter_schema.get_value({
+      tx,
+      params: [tx.object(Counter_Object_Id)],
+    })) as DevInspectResults;
     // Log and update the counter value in state
     console.log("Counter value:", dubhe.view(query_value)[0]);
     setValue(dubhe.view(query_value)[0]);
@@ -101,12 +102,11 @@ const Home = () => {
       // Create new transaction instance
       const tx = new Transaction();
       // Call the increment function on the smart contract
-      (await dubhe.tx.counter_system.inc(
+      (await dubhe.tx.counter_system.inc({
         tx,
-        [tx.object(Counter_Object_Id), tx.pure.u32(1)],
-        undefined,
-        true
-      )) as TransactionResult;
+        params: [tx.object(Counter_Object_Id), tx.pure.u32(1)],
+        isRaw: true,
+      })) as TransactionResult;
       // Sign and send the transaction
       const response = await dubhe.signAndSendTxn(tx);
       // Handle successful transaction
