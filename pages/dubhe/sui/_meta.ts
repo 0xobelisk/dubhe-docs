@@ -1,7 +1,8 @@
 export default {
-  "cli":"CLI",
-  "client":"Client",
-  "schemas":"Schemas",
-  "tutorials":"Tutorials",
-  "examples":"Examples",
-}
+	'quick-start': 'Quick Start',
+	cli: 'CLI',
+	client: 'Client',
+	schemas: 'Schemas',
+	tutorials: 'Tutorials',
+	examples: 'Examples',
+};
