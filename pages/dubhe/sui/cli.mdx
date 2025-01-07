@@ -29,6 +29,8 @@ Core features:
 8. [`config-store`](#config-store): Store configuration for the Dubhe project
 9. [`build`](#build): Build Dubhe Move contracts
 10. [`test`](#test): Run tests for Dubhe contracts
+11. [`call`](#call): Call a function in a module
+12. [`query`](#query): Query schema struct state
 
 ## Installation
 
@@ -171,6 +173,65 @@ dubhe test [--test <test_name>]
 Options:
   --config-path    Path to config file (default: "dubhe.config.ts")
   --test          Name of specific test to run
+```
+
+### `call`
+
+Call a function in a module.
+
+```bash
+dubhe call --network <network> --module <module_name> --function <function_name> [options]
+
+Options:
+  --network        Network to use (mainnet/testnet/devnet/localnet)
+  --module         Module name
+  --function       Function name
+  --config-path    Path to config file (default: "dubhe.config.ts")
+  --package-id     Package ID (optional)
+  --metadata-path  Path to metadata JSON file (optional)
+  --params         Parameters for the function (optional)
+```
+
+### `query`
+
+Query schema struct state. Supports different storage types:
+
+- StorageValue (no params required)
+- StorageMap (1 param required)
+- StorageDoubleMap (2 params required)
+
+```bash
+dubhe query --network <network> --schema <schema_name> --field <field_name> [options]
+
+Options:
+  --network        Network to use (mainnet/testnet/devnet/localnet)
+  --schema         Schema name
+  --field         Field name
+  --config-path    Path to config file (default: "dubhe.config.ts")
+  --object-id     Object ID (optional)
+  --package-id    Package ID (optional)
+  --metadata-path Path to metadata JSON file (optional)
+  --params        Parameters for storage type (optional)
+```
+
+Examples:
+
+1. Query StorageValue:
+
+```bash
+dubhe query --network devnet --schema counter --field value
+```
+
+2. Query StorageMap:
+
+```bash
+dubhe query --network devnet --schema token --field balances --params "0x123...def"
+```
+
+3. Query StorageDoubleMap:
+
+```bash
+dubhe query --network devnet --schema game --field player_relations --params "0x123...456" "0x789...abc"
 ```
 
 ## Environment Setup
