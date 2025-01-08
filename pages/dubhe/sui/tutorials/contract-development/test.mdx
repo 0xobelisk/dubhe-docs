@@ -2,33 +2,30 @@
 
 We'll start by creating a test file.
 ```bash
-touch contracts/counter/sources/tests/booster.move
+touch contracts/counter/sources/tests/message.move
 ```
 `deploy_dapp_for_testing` is the test method that Dubhe automatically generates for you.
 Let's write the test.
 
  ```sui move
 #[test_only]
-module counter::booster_test {
+module dms::message_test {
     use sui::test_scenario;
-    use counter::booster_system;
-    use counter::booster_schema::Booster;
-    use counter::init_test;
-
+    use std::ascii::string;
+    use dms::message_system;
+    use dms::message_schema::Message;
+    use dms::init_test;
     #[test]
-    public fun inc() {
-        let (scenario, dapp)  = init_test::deploy_dapp_for_testing(@0xA);
-        let mut booster = test_scenario::take_shared<Booster>(&scenario);
+    public fun send() {
+        let (mut scenario, dapp)  = init_test::deploy_dapp_for_testing(@0xA);
+        let mut message = test_scenario::take_shared<Message>(&scenario);
+        assert!(message.content().get() == string(b"Hello, World!"));
 
-        assert!(booster.borrow_number().get() == 0);
+        let ctx = test_scenario::ctx(&mut scenario);
+        message_system::send(&mut message, string(b"Move, Move!"), ctx);
+        assert!(message.content().get() == string(b"Move, Move!"));
 
-        booster_system::inc(&mut booster, 10);
-        assert!(booster.borrow_number().get() == 10);
-
-        booster_system::inc(&mut booster, 10);
-        assert!(booster.borrow_number().get() == 20);
-
-        test_scenario::return_shared(booster);
+        test_scenario::return_shared(message);
         dapp.distroy_dapp_for_testing();
         scenario.end();
     }
@@ -37,14 +34,14 @@ module counter::booster_test {
 
 Let's run the Test command to check for syntax errors.
 ```bash
-➜  pnpm dubhe test
+➜  dubhe-template-project pnpm dubhe test
 🚀 Running move test
-Total number of linter warnings suppressed: 1 (unique lints: 1)
 INCLUDING DEPENDENCY Dubhe
 INCLUDING DEPENDENCY Sui
 INCLUDING DEPENDENCY MoveStdlib
-BUILDING counter
+BUILDING dms
 Running Move unit tests
-[ PASS    ] counter::counter_test::inc
+[ PASS    ] dms::message_test::send
 Test result: OK. Total tests: 1; passed: 1; failed: 0
+Total number of linter warnings suppressed: 1 (unique lints: 1)
 ```
