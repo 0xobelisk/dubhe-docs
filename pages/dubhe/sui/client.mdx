@@ -235,6 +235,79 @@ const owner =
 const ownedObjects = await dubhe.getOwnedObjects(owner);
 ```
 
+### Querying Schema State
+
+To query the state of schema fields defined in your Dubhe config:
+
+```typescript
+const result = await dubhe.state({
+  schema: "counter", // Schema name from your Dubhe config
+  field: "value", // Field name within the schema
+  objectId: "0x123...", // Object ID of the schema instance
+  storageType: "StorageValue<u64>", // Storage type of the field
+  params: [], // Parameters for StorageMap/StorageDoubleMap keys
+});
+```
+
+The `state()` method supports three storage types:
+
+1. `StorageValue<V>` - For single value storage
+
+```typescript
+// Query a simple storage value
+const value = await dubhe.state({
+  schema: "player",
+  field: "score",
+  objectId: "0x123...",
+  storageType: "StorageValue<u64>",
+  params: [], // No params needed for StorageValue
+});
+```
+
+2. `StorageMap<K,V>` - For key-value map storage
+
+```typescript
+// Query a value from storage map
+const mapValue = await dubhe.state({
+  schema: "inventory",
+  field: "items",
+  objectId: "0x123...",
+  storageType: "StorageMap<address,u64>",
+  params: ["0x456..."], // Key to look up in the map
+});
+```
+
+3. `StorageDoubleMap<K1,K2,V>` - For double key-value map storage
+
+```typescript
+// Query a value from double map
+const doubleMapValue = await dubhe.state({
+  schema: "game",
+  field: "scores",
+  objectId: "0x123...",
+  storageType: "StorageDoubleMap<address,u64,u64>",
+  params: ["0x456...", 42], // Two keys needed for double map
+});
+```
+
+#### Supported Key Types
+
+The following key types are supported for StorageMap and StorageDoubleMap:
+
+- Basic types: `u8`, `u16`, `u32`, `u64`, `u128`, `u256`, `bool`
+- `address`
+- Custom object types (format: `package::module::type`)
+
+#### Error Handling
+
+The method will throw an error if:
+
+- Invalid storage type format is provided
+- Wrong number of parameters for the storage type
+- Unsupported key type is used
+- Schema or field doesn't exist
+- Object ID is invalid
+
 ## Best Practices
 
 1. Use pre-saved metadata for better performance in production
