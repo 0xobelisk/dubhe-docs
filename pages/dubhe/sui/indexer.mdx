@@ -56,44 +56,6 @@ http://localhost:3001/graphql
 
 Connect to `ws://{host}:{port}` to receive real-time updates.
 
-## Data Types
-
-### Events
-
-Events are stored with the following structure:
-
-```typescript
-interface Event {
-  checkpoint: string;
-  digest: string;
-  created_at: string;
-  name: string;
-  value: any;
-}
-```
-
-### Transactions
-
-Transactions are stored with:
-
-```typescript
-interface Transaction {
-  checkpoint: string;
-  digest: string;
-  cursor: string;
-  timestamp_ms: string;
-}
-```
-
-## Future Plans
-
-- Support for PostgreSQL database
-- Support for MySQL database
-- Enhanced query capabilities
-- Advanced filtering options
-- Performance optimizations
-- Additional database backends
-
 ## Query Examples
 
 ### Using Dubhe Client
