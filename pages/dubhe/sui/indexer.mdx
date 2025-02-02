@@ -21,39 +21,10 @@ Dubhe Indexer is a powerful indexing solution for Sui blockchain data, currently
 ### Installation
 
 ```bash
-pnpm install @0xobelisk/sui-indexer
+npm install @0xobelisk/sui-indexer
+# or
+yarn add @0xobelisk/sui-indexer
 ```
-
-### Initializing Dubhe Client
-
-1. Using default indexer URLs:
-
-```typescript
-const dubhe = new Dubhe({
-  networkType: "localnet", // Will use default indexer URLs:
-  // http://127.0.0.1:9001 (HTTP)
-  // ws://127.0.0.1:9001 (WebSocket)
-});
-```
-
-2. Using custom indexer URLs:
-
-```typescript
-const dubhe = new Dubhe({
-  networkType: "localnet",
-  indexerUrl: "https://your-custom-indexer.com", // Custom HTTP endpoint
-  indexerWsUrl: "wss://your-custom-indexer.com/ws", // Custom WebSocket endpoint
-});
-```
-
-Note: If you only specify `indexerUrl`, the WebSocket URL will be automatically derived by converting the HTTP protocol to WS/WSS. You can override this by explicitly setting `indexerWsUrl`.
-
-### Network-specific Default URLs
-
-For all networks (localnet/testnet/mainnet), the default indexer URLs are:
-
-- HTTP: `http://127.0.0.1:9001`
-- WebSocket: `ws://127.0.0.1:9001`
 
 ### Basic Usage
 
@@ -85,6 +56,12 @@ Options:
 ### HTTP Endpoints
 
 - `GET /graphql` - GraphQL endpoint
+
+Access the GraphQL Playground by visiting:
+
+```
+http://localhost:3001/graphql
+```
 
 ### WebSocket Subscriptions
 
@@ -130,7 +107,36 @@ interface Transaction {
 
 ## Query Examples
 
-### Basic Queries
+### Using Dubhe Client
+
+To query the indexed data, you'll need to initialize a Dubhe client:
+
+1. Using default indexer URLs:
+
+```typescript
+const dubhe = new Dubhe({
+  networkType: "localnet", // Will use default indexer URLs:
+  // http://127.0.0.1:9001 (HTTP)
+  // ws://127.0.0.1:9001 (WebSocket)
+});
+```
+
+2. Using custom indexer URLs:
+
+```typescript
+const dubhe = new Dubhe({
+  networkType: "localnet",
+  indexerUrl: "https://your-custom-indexer.com", // Custom HTTP endpoint
+  indexerWsUrl: "wss://your-custom-indexer.com/ws", // Custom WebSocket endpoint
+});
+```
+
+For all networks (localnet/testnet/mainnet), the default indexer URLs are:
+
+- HTTP: `http://127.0.0.1:9001`
+- WebSocket: `ws://127.0.0.1:9001`
+
+### Basic Query Examples
 
 1. Query a single storage item:
 
@@ -168,8 +174,6 @@ while (currentPage.pageInfo.hasNextPage) {
   console.log("Next Page Data:", currentPage.value);
   total += currentPage.value.length;
 }
-
-console.log("Total Items:", total);
 ```
 
 3. Subscribe to real-time updates:
@@ -183,18 +187,7 @@ const websocket = await dubhe.subscribe(
 );
 ```
 
-### Advanced Queries
-
-For more detailed examples of querying indexed data, including:
-
-- Complex filtering
-- Advanced pagination
-- Multiple schema queries
-- Event filtering
-- Transaction history
-- Real-time subscriptions with error handling
-
-Please refer to the [Client Documentation - Indexer Integration](/dubhe/sui/client#indexer-integration) section.
+For more detailed examples of querying indexed data, including complex filtering, advanced pagination, and error handling, please refer to the [Client Documentation - Indexer Integration](/dubhe/sui/client#indexer-integration) section.
 
 ## Support
 
