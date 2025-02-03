@@ -1,6 +1,6 @@
 ---
 title: Client - Dubhe
-description: Learn how to use the Sui SDK.
+description: Learn how to use the Sui Client.
 ---
 
 # Dubhe Client SDK for Sui
@@ -60,7 +60,7 @@ There are two ways to initialize the Dubhe client:
 ```typescript
 import { loadMetadata, Dubhe, NetworkType } from "@0xobelisk/sui-client";
 
-const network = "devnet" as NetworkType;
+const network = "testnet" as NetworkType;
 const packageId = "YOUR_PACKAGE_ID";
 
 const metadata = await loadMetadata(network, packageId);
@@ -82,6 +82,77 @@ const dubhe = new Dubhe({
   packageId: packageId,
   metadata: metadata,
   secretKey: privkey,
+});
+```
+
+#### Configuration Parameters
+
+The Dubhe constructor accepts the following parameters:
+
+```typescript
+interface DubheParams {
+  // Authentication (one of these is required)
+  mnemonics?: string; // 12 or 24 mnemonic words, separated by space
+  secretKey?: string; // Base64 or hex string or bech32 format private key
+  // Note: if mnemonics is provided, secretKey will be ignored
+
+  // Network Configuration
+  networkType?: NetworkType; // 'mainnet' | 'testnet' | 'devnet' | 'localnet'
+  // Default: 'mainnet'
+  fullnodeUrls?: string[]; // Array of fullnode URLs
+  // Default: Network-specific default URL
+  faucetUrl?: string; // Custom faucet URL for testnet/devnet/localnet
+
+  // Contract Configuration
+  packageId?: string; // Your contract's package ID
+  metadata?: SuiMoveNormalizedModules; // Contract metadata
+
+  // Indexer Configuration
+  indexerUrl?: string; // Custom indexer API URL
+  indexerWsUrl?: string; // Custom indexer WebSocket URL
+  // Default: Derived from indexerUrl
+
+  // HTTP Configuration
+  customFetch?: typeof fetch; // Custom fetch implementation
+  defaultOptions?: FetchOptions; // Default fetch options for all requests
+}
+```
+
+#### Examples
+
+1. Basic initialization with private key:
+
+```typescript
+const dubhe = new Dubhe({
+  networkType: "testnet",
+  packageId: "0x123...",
+  metadata: metadata,
+  secretKey: "YOUR_PRIVATE_KEY",
+});
+```
+
+2. Using mnemonics with custom network configuration:
+
+```typescript
+const dubhe = new Dubhe({
+  mnemonics: "word1 word2 ... word24",
+  networkType: "testnet",
+  fullnodeUrls: ["https://custom-fullnode.example.com"],
+  packageId: "0x123...",
+  metadata: metadata,
+});
+```
+
+3. With custom indexer configuration:
+
+```typescript
+const dubhe = new Dubhe({
+  secretKey: "YOUR_PRIVATE_KEY",
+  networkType: "mainnet",
+  packageId: "0x123...",
+  metadata: metadata,
+  indexerUrl: "https://custom-indexer.example.com",
+  indexerWsUrl: "wss://custom-indexer-ws.example.com",
 });
 ```
 
@@ -222,42 +293,42 @@ const decodedState = dubhe.view(result);
 
 ⚠️ **Important Note**:
 
-1. The current implementation cannot automatically decode enum types due to limitations in Sui metadata.
-2. Some complex nested structures might require additional handling.
-
-### Query Owned Objects
-
-To query objects owned by a specific address:
-
-```typescript
-const owner =
-  "0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e";
-const ownedObjects = await dubhe.getOwnedObjects(owner);
-```
+> Some complex nested structures might require additional handling.
 
 ### Querying Schema State
 
-To query the state of schema fields defined in your Dubhe config:
+To query the state of schema fields defined in your Dubhe config, you can use either `parseState()` or `state()` method:
+
+#### Using parseState
 
 ```typescript
-const result = await dubhe.state({
+const result = await dubhe.parseState({
   schema: "counter", // Schema name from your Dubhe config
-  field: "value", // Field name within the schema
   objectId: "0x123...", // Object ID of the schema instance
   storageType: "StorageValue<u64>", // Storage type of the field
   params: [], // Parameters for StorageMap/StorageDoubleMap keys
 });
 ```
 
-The `state()` method supports three storage types:
+#### Using state
+
+```typescript
+const tx = new Transaction();
+const result = await dubhe.state({
+  tx, // Transaction instance
+  schema: "counter", // Schema name from your Dubhe config
+  params: [tx.object("0x123...")], // Parameters including object ID
+});
+```
+
+The storage types support three formats:
 
 1. `StorageValue<V>` - For single value storage
 
 ```typescript
 // Query a simple storage value
-const value = await dubhe.state({
+const value = await dubhe.parseState({
   schema: "player",
-  field: "score",
   objectId: "0x123...",
   storageType: "StorageValue<u64>",
   params: [], // No params needed for StorageValue
@@ -268,9 +339,8 @@ const value = await dubhe.state({
 
 ```typescript
 // Query a value from storage map
-const mapValue = await dubhe.state({
+const mapValue = await dubhe.parseState({
   schema: "inventory",
-  field: "items",
   objectId: "0x123...",
   storageType: "StorageMap<address,u64>",
   params: ["0x456..."], // Key to look up in the map
@@ -281,9 +351,8 @@ const mapValue = await dubhe.state({
 
 ```typescript
 // Query a value from double map
-const doubleMapValue = await dubhe.state({
+const doubleMapValue = await dubhe.parseState({
   schema: "game",
-  field: "scores",
   objectId: "0x123...",
   storageType: "StorageDoubleMap<address,u64,u64>",
   params: ["0x456...", 42], // Two keys needed for double map
@@ -305,14 +374,218 @@ The method will throw an error if:
 - Invalid storage type format is provided
 - Wrong number of parameters for the storage type
 - Unsupported key type is used
-- Schema or field doesn't exist
+- Schema doesn't exist
 - Object ID is invalid
+
+#### Parameter Validation
+
+- StorageValue: No additional parameters required
+- StorageMap: Exactly one key parameter required
+- StorageDoubleMap: Exactly two key parameters required
+
+## Indexer Integration
+
+The Dubhe SDK provides built-in support for querying indexed data through its Indexer Client.
+
+### Querying Transactions
+
+```typescript
+// Query transactions with pagination
+const transactions = await dubhe.getTransactions({
+  first: 10, // Number of items per page
+  after: "cursor", // Cursor for pagination
+  orderBy: ["ID_ASC"], // Sorting options
+});
+```
+
+### Querying Events
+
+```typescript
+// Query events with filters
+const events = await dubhe.getEvents({
+  first: 10,
+  after: "cursor",
+  name: "event_name", // Filter by event name
+  checkpoint: "checkpoint_id",
+  orderBy: ["ID_ASC"],
+});
+```
+
+### Querying Schema Data
+
+```typescript
+// Query schema data with filters
+const schemas = await dubhe.getSchemas({
+  name: "schema_name",
+  key1: "key1_value",
+  key2: "key2_value",
+  is_removed: false,
+  first: 10,
+  after: "cursor",
+  orderBy: ["ID_ASC"],
+});
+```
+
+### Storage Queries
+
+#### Query Multiple Storage Items
+
+```typescript
+// Query storage items with pagination
+const storage = await dubhe.getStorage({
+  name: "storage_name",
+  key1: "key1_value",
+  key2: "key2_value",
+  is_removed: false,
+  first: 10,
+  after: "cursor",
+  orderBy: ["ID_ASC"],
+});
+
+// Access the results
+console.log(storage.value); // Parsed storage values
+console.log(storage.data); // Raw storage data
+console.log(storage.pageInfo); // Pagination information
+console.log(storage.totalCount); // Total number of items
+```
+
+#### Query Single Storage Item
+
+```typescript
+// Query a single storage item
+const item = await dubhe.getStorageItem({
+  name: "storage_name",
+  key1: "key1_value",
+  key2: "key2_value",
+});
+
+if (item) {
+  console.log(item.value); // Parsed storage value
+  console.log(item.data); // Raw storage data
+}
+```
+
+### Real-time Subscriptions
+
+Subscribe to real-time updates for specific schemas or events:
+
+```typescript
+const websocket = await dubhe.subscribe(
+  ["schema_name", "event_name"],
+  (data) => {
+    console.log("Received update:", data);
+  }
+);
+```
+
+### Response Types
+
+#### Connection Response
+
+```typescript
+interface ConnectionResponse<T> {
+  edges: Array<{
+    cursor: string;
+    node: T;
+  }>;
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor?: string;
+  };
+  totalCount: number;
+}
+```
+
+#### Storage Response
+
+```typescript
+interface StorageResponse<T> {
+  data: T[]; // Raw data
+  value: any[]; // Parsed values
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor?: string;
+  };
+  totalCount: number;
+}
+```
+
+#### Storage Item Response
+
+```typescript
+interface StorageItemResponse<T> {
+  data: T; // Raw data
+  value: any; // Parsed value
+}
+```
+
+### Pagination Example
+
+Here's a complete example of paginating through storage items:
+
+```typescript
+const pageSize = 10;
+let currentPage = await dubhe.getStorage({
+  name: "storage_name",
+  first: pageSize,
+  orderBy: ["ID_ASC"],
+});
+
+// Process first page
+console.log("Current Page Data:", currentPage.value);
+
+// Fetch subsequent pages
+while (currentPage.pageInfo.hasNextPage) {
+  currentPage = await dubhe.getStorage({
+    name: "storage_name",
+    first: pageSize,
+    after: currentPage.pageInfo.endCursor,
+    orderBy: ["ID_ASC"],
+  });
+  console.log("Next Page Data:", currentPage.value);
+}
+```
+
+### Order By Options
+
+The following order fields are supported:
+
+- For Transactions: `ID_ASC`, `ID_DESC`, `CHECKPOINT_ASC`, `CHECKPOINT_DESC`
+- For Events: `ID_ASC`, `ID_DESC`, `CHECKPOINT_ASC`, `CHECKPOINT_DESC`
+- For Schemas: `ID_ASC`, `ID_DESC`, `NAME_ASC`, `NAME_DESC`
 
 ## Best Practices
 
 1. Use pre-saved metadata for better performance in production
+
+   - Generate and save metadata during deployment
+   - Load metadata from file instead of fetching it every time
+
 2. Implement proper error handling for BCS decoding
+
+   - Handle potential decoding errors for complex types
+   - Validate data types before decoding
+   - Use try-catch blocks for parsing operations
+
 3. Consider the limitations of enum type handling when designing your contract return types
+
+   - Be aware of Sui metadata limitations for enums
+   - Design simpler enum structures when possible
+   - Test enum handling thoroughly
+
+4. Optimize indexer queries
+
+   - Use appropriate page sizes for pagination
+   - Implement cursor-based pagination for large datasets
+   - Cache frequently accessed data when possible
+   - Use specific filters to reduce result set size
+
+5. Handle real-time subscriptions efficiently
+
+   - Implement proper cleanup for WebSocket connections
+   - Handle reconnection scenarios
+   - Process subscription data asynchronously
+   - Set up error handling for connection issues
 
 ## Support
 

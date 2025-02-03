@@ -1,6 +1,6 @@
 ---
 title: CLI - Dubhe
-description: Learn why we use SDK.
+description: Learn how to use the dubhe cli.
 ---
 
 # Dubhe CLI for Sui
@@ -49,12 +49,11 @@ Some commands expect a dubhe config in the same folder where the CLI is being ex
 Generate Store libraries from a `dubhe.config.ts` file. See the [Store Config and `schemagen` documentation](../schemas/config) in the Store section for more details.
 
 ```bash
-dubhe schemagen [--network <network>] [--framework-id <id>]
+dubhe schemagen [--config-path <path>] [--network <network>]
 
 Options:
   --config-path    Path to config file (default: "dubhe.config.ts")
-  --network        Target network
-  --framework-id   Framework Package ID
+  --network        Target network (mainnet/testnet/devnet/localnet)
 ```
 
 ### `publish`
@@ -68,12 +67,11 @@ Before deploying the contract, please ensure:
 3. For localnet deployments, ensure your local node is running
 
 ```bash
-dubhe publish --network <network> [--contract-name <name>] [--gas-budget <number>]
+dubhe publish --network <network> [--config-path <path>] [--gas-budget <number>]
 
 Options:
-  --network        Target network (mainnet/testnet/devnet/localnet)
-  --config-path    Config file path (default: "dubhe.config.ts")
-  --contract-name  Optional specific contract to deploy
+  --network        Target network (mainnet/testnet/devnet/localnet) (default: localnet)
+  --config-path    Path to config file (default: "dubhe.config.ts")
   --gas-budget     Optional gas budget for transaction
 ```
 
@@ -109,7 +107,7 @@ Request test tokens from the Sui faucet. The default faucet service automaticall
 dubhe faucet --network <network> [--recipient <address>]
 
 Options:
-  --network     Network to request tokens on (testnet/devnet/localnet)
+  --network     Network to request tokens on (testnet/devnet/localnet) (default: localnet)
   --recipient   Optional recipient address (uses PRIVATE_KEY env if not specified)
 ```
 
@@ -122,7 +120,7 @@ dubhe generate-key [--force] [--output-ts-path <path>]
 
 Options:
   --force           Force generate new keypair
-  --output-ts-path  Path to output TypeScript key file
+  --output-ts-path  Path to output TypeScript key file (e.g., ./src/config/key.ts)
 ```
 
 ### `check-balance`
@@ -142,12 +140,12 @@ Options:
 Store configuration for the Dubhe project.
 
 ```bash
-dubhe config-store --network <network> [--output-ts-path <path>]
+dubhe config-store --network <network> [--config-path <path>] [--output-ts-path <path>]
 
 Options:
-  --network          Network to store config for
+  --network          Network to store config for (mainnet/testnet/devnet/localnet)
   --config-path      Path to config file (default: "dubhe.config.ts")
-  --output-ts-path   Output path for generated TypeScript config
+  --output-ts-path   Output path for generated TypeScript config (e.g., ./src/config/generated.ts)
 ```
 
 ### `build`
@@ -155,12 +153,12 @@ Options:
 Build your Dubhe Move contracts.
 
 ```bash
-dubhe build --network <network> [--dump-bytecode-as-base64]
+dubhe build --network <network> [--config-path <path>] [--dump-bytecode-as-base64]
 
 Options:
-  --network                 Network to build for (mainnet/testnet/devnet/localnet)
-  --dump-bytecode-as-base64 Output bytecode as base64 (optional)
-  --config-path            Path to config file (default: "dubhe.config.ts")
+  --network                Target network (mainnet/testnet/devnet/localnet)
+  --config-path           Path to config file (default: "dubhe.config.ts")
+  --dump-bytecode-as-base64  Output bytecode as base64
 ```
 
 ### `test`
@@ -168,11 +166,12 @@ Options:
 Run tests for Dubhe contracts.
 
 ```bash
-dubhe test [--test <test_name>]
+dubhe test [--config-path <path>] [--test <test_name>] [--gas-limit <limit>]
 
 Options:
   --config-path    Path to config file (default: "dubhe.config.ts")
   --test          Name of specific test to run
+  --gas-limit     Set gas limit for test
 ```
 
 ### `call`
@@ -183,9 +182,9 @@ Call a function in a module.
 dubhe call --network <network> --module <module_name> --function <function_name> [options]
 
 Options:
-  --network        Network to use (mainnet/testnet/devnet/localnet)
-  --module         Module name
-  --function       Function name
+  --network        Network to use (mainnet/testnet/devnet/localnet) (default: localnet)
+  --module         Module name (required)
+  --function       Function name (required)
   --config-path    Path to config file (default: "dubhe.config.ts")
   --package-id     Package ID (optional)
   --metadata-path  Path to metadata JSON file (optional)
@@ -201,12 +200,11 @@ Query schema struct state. Supports different storage types:
 - StorageDoubleMap (2 params required)
 
 ```bash
-dubhe query --network <network> --schema <schema_name> --field <field_name> [options]
+dubhe query --network <network> --schema <schema_name> [options]
 
 Options:
-  --network        Network to use (mainnet/testnet/devnet/localnet)
-  --schema         Schema name
-  --field         Field name
+  --network        Network to use (mainnet/testnet/devnet/localnet) (default: localnet)
+  --schema         Schema name (required)
   --config-path    Path to config file (default: "dubhe.config.ts")
   --object-id     Object ID (optional)
   --package-id    Package ID (optional)
