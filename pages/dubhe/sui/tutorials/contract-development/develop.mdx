@@ -19,15 +19,13 @@ Let's go over what's in dubheConfig
 
 To complete dms contract I need a Schema to store the numbers, now let's complete the Schema.
 
-```ts filename="dubhe.config.ts" {6-8} copy showLineNumbers
+```ts filename="dubhe.config.ts" {5-7} copy showLineNumbers
 import { DubheConfig } from '@0xobelisk/sui-common';
 export const dubheConfig = {
     name: 'dms',
     description: 'Distributed Messaging',
     schemas: {
-        message: {
-            content: 'StorageValue<String>'
-        }
+        message: 'StorageValue<String>'
     },
 } as DubheConfig;
 ```
@@ -37,7 +35,7 @@ The name of this Schema is message, and he has only one number field with storag
 Now we need to generate the contract frame content using Dubhe's most powerful feature.
 
 ```bash
-➜  dubhe-template-project pnpm dubhe schemagen
+➜  pnpm dubhe schemagen
 
 🚀 Starting Schema Generation Process...
 📋 Project Configuration:
@@ -81,19 +79,23 @@ Take a look at the file structure of dms, we don't need to concern ourselves wit
 ├── Move.toml
 └── sources
     ├── codegen
-    │   └── schemas
-    │         ├── default
-    │         │   └── dapp
-    │         │     ├── metadata.move
-    │         │     ├── schema.move
-    │         │     └── system.move
-    │         └── message.move
+    │     ├── dapp
+    │     │     ├── metadata.move
+    │     │     ├── schema.move
+    │     │     └── system.move
+    │     ├── errors.move
+    │     ├── events.move
+    │     ├── genesis.move
+    │     └── schema.move
     ├── scripts
-    │         ├── deploy_hook.move
-    │         └── migrate.move
+    │     ├── deploy_hook.move
+    │     └── migrate.move
     ├── systems
+    │     └── message_system.move
     └── tests
-        └── init.move
+        ├── init.move
+        └── message.move
+
 
 9 directories, 8 files
 ```
@@ -108,10 +110,10 @@ This can be easily achieved with the help of Dubhe's code generation. The conten
 ```sui move filename="message.move"
 module dms::message_system {
     use std::ascii::String;
-    use dms::message_schema::Message;
+    use dms::schema::Schema;
 
-    public entry fun send(message: &mut Message, content: String) {
-        message.content().set(content);
+    public entry fun send(schema: &mut Schema, content: String) {
+        schema.message().set(content);
     }
 }
 ```
@@ -119,15 +121,13 @@ module dms::message_system {
 
 Let's add an error handler so that the length of the content doesn't exceed 12, how to do error handling?
 
-```ts filename="dubhe.config.ts" {10-12} copy showLineNumbers
+```ts filename="dubhe.config.ts" {8-10} copy showLineNumbers
 import { DubheConfig } from '@0xobelisk/sui-common';
 export const dubheConfig = {
     name: 'dms',
     description: 'Distributed Messaging',
     schemas: {
-        message: {
-            content: 'StorageValue<String>'
-        }
+        message: 'StorageValue<String>'
     },
     errors: {
         InvalidContentLength: "Content length must be less than 12"
@@ -136,15 +136,13 @@ export const dubheConfig = {
 ```
 
 The error handling code has been added, now we also want to add events to the contract to tell us who sent what message.
-```ts filename="dubhe.config.ts" {13-18} copy showLineNumbers
+```ts filename="dubhe.config.ts" {11-16} copy showLineNumbers
 import { DubheConfig } from '@0xobelisk/sui-common';
 export const dubheConfig = {
 	name: 'dms',
 	description: 'Distributed Messaging',
 	schemas: {
-		message: {
-			content: 'StorageValue<String>'
-		}
+			message: 'StorageValue<String>'
 	},
 	errors: {
 		InvalidContentLength: "Content length must be less than 12"
@@ -209,12 +207,12 @@ First we do an error check, the input content must be greater than 0.
 ```sui move filename="message.move" {4, 7} copy showLineNumbers
 module dms::message_system {
     use std::ascii::String;
-    use dms::message_schema::Message;
-    use dms::invalid_content_length_error;
+    use dms::schema::Schema;
+    use dms::errors::invalid_content_length_error;
 
-    public entry fun send(message: &mut Message, content: String) {
-        invalid_content_length_error::require(content.length() < 12);
-        message.content().set(content);
+    public entry fun send(schema: &mut Schema, content: String) {
+        invalid_content_length_error(content.length() < 12);
+        schema.message().set(content);
     }
 }
 ```
@@ -223,14 +221,14 @@ Finally we add events to the contract.
 ```sui move filename="message.move" {5, 10} copy showLineNumbers
 module dms::message_system {
     use std::ascii::String;
-    use dms::message_schema::Message;
-    use dms::invalid_content_length_error;
-    use dms::message_sent_event;
+    use dms::schema::Schema;
+    use dms::errors::invalid_content_length_error;
+    use dms::events::message_sent_event;
 
-    public entry fun send(message: &mut Message, content: String, ctx: &mut TxContext) {
-        invalid_content_length_error::require(content.length() < 12);
-        message.content().set(content);
-        message_sent_event::emit(ctx.sender(), content);
+    public entry fun send(schema: &mut Schema, content: String, ctx: &mut TxContext) {
+        invalid_content_length_error(content.length() < 12);
+        schema.message().set(content);
+        message_sent_event(ctx.sender(), content);
     }
 }
 ```
@@ -240,28 +238,22 @@ By this point we need to write the contents of the deploy_hook, which will be au
 dubhe-template-project/contracts/counter/sources/scripts/deploy_hook.move
 ```
 
-```sui move filename="deploy_hook.move" {15} copy showLineNumbers
-#[allow(lint(share_owned), unused_let_mut)]
-module dms::deploy_hook {
-  use std::ascii::string;
-  use sui::clock::Clock;
-  use dms::dapp_system;
-  use dms::message_schema::Message;
+```sui move filename="deploy_hook.move" {12} copy showLineNumbers
+  // Copyright (c) Obelisk Labs, Inc.
+  // SPDX-License-Identifier: Apache-2.0
+  #[allow(unused_use)]
 
-  public entry fun run(clock: &Clock, ctx: &mut TxContext) {
-    // Create a dapp.
-    let mut dapp = dapp_system::create(string(b"dms"),string(b"Distributed Messaging"), clock , ctx);
-    // Create schemas
-    let mut message = dms::message_schema::create(ctx);
-    // Logic that needs to be automated once the contract is deployed
-    {
-      message.content().set(string(b"Hello, World!"));
-    };
-    // Authorize schemas and public share objects
-    dapp.add_schema<Message>(message, ctx);
-    sui::transfer::public_share_object(dapp);
+  /* Autogenerated file. Do not edit manually. */
+
+  module dms::deploy_hook {
+  use std::ascii::string;
+  use dms::schema::Schema;
+
+  public(package) fun run(_schema: &mut Schema, _ctx: &mut TxContext) {
+        _schema.message().set(string(b"Hello World!"));
   }
 }
+
 ```
 
 Let's run the Build command to check for syntax errors.

@@ -7,7 +7,7 @@ description: What is Schemas?.
 
 ## What is Schemas?
 
-**Schemas is an onchain database**. When building on Obelisk, developers save contract state into Schemas. It replaces the Move compiler-driven data storage: variables and arrays defined at the top of a contract.
+**In Dubhe, Schemas are a series of on-chain databases**. When building on Dubhe, developers save contract state into Schemas. It replaces the Move compiler-driven data storage: variables and arrays defined at the top of a contract.
 
 **Move compiler-driven storage**
 
@@ -27,16 +27,17 @@ let person = table::borrow(&table, address)
 return (person.name, person.age);
 ```
 
-**Obelisk Schemas**
+**Dubhe Schemas**
 
 ```rust
-// declaring in the Obelisk config
-// person_schema: Automatically generated schemas based on Obelisk config
-// world: A Licence-Free World Generated with Obelisk
+// declaring in the Dubhe config
+// person_schema: Automatically generated schemas based on Dubhe config
+// world: A Licence-Free World Generated with Dubhe
 // storing
-person_schema::set(&mut world, address, "name", 10);
+schema.person().set(address, person::new("name", 10));
 // getting
-return person_schema::get(&world, address);
+let person = schema.person().get(address);
+let (name, age) = schema.person().get(address).get();
 ```
 
 Schemas is an embedded MoveVM database: you can think of it like [SQLite](https://www.sqlite.org/index.html), but for the MoveVM. Contracts can store all their application data — like variables, maps, arrays and strut — in Schemas; and any data-model implementable in a SQL database can be represented into Schemas ([ECS](https://en.wikipedia.org/wiki/Entity_schema_system), [EAV](https://en.wikipedia.org/wiki/Entity–attribute–value_model), [Graph](<https://en.wikipedia.org/wiki/Graph_(abstract_data_type)>), etc).

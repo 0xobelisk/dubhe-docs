@@ -22,7 +22,7 @@ export const dubheConfig = {
 
 ### Generating the schemas
 
-To generate the schemas, run `pnpm dubhe schemagen ./dubhe.config.ts` in the same folder as the config file.
+To generate the schemas, run `pnpm dubhe schemagen` in the same folder as the config file.
 
 ### Schema Data
 
@@ -32,30 +32,16 @@ Currently, Schema supports all the basic types of Move, and will be added later 
 export const dubheConfig = {
   name: "example",
   description: "example desc",
-  schemas: {
-    student_management: {
-        data: [
-          {
-              name: "Class",
-              fields: {
-                    name: "string",
-                    teacher: "string",
-              },
-          },
-          {
-              name: "Student",
-              fields: {
-                    name: "string",
-                    age: "u8",
-                    class: "Class",
-              },
-         }
-      ]
-    }
+  data: {
+      Student: {
+          name: "string",
+          age: "u8",
+      },
   },
+  schemas: {},
 } as DubheConfig;
 ```
-### Schema structure
+### Storages
 
 Schema currently supports three storage structures, StorageValue, StorageMap, StorageDoubleMap.
 
@@ -63,79 +49,77 @@ Schema currently supports three storage structures, StorageValue, StorageMap, St
 export const dubheConfig = {
   name: "example",
   description: "example desc",
+  data: {
+      Student: {
+          name: "string",
+          age: "u8",
+      },
+  },
   schemas: {
-    student_management: {
-        data: [
-          {
-              name: "Class",
-              fields: {
-                    name: "string",
-                    teacher: "string",
-              },
-          },
-          {
-              name: "Student",
-              fields: {
-                    name: "string",
-                    age: "u8",
-                    class: "Class",
-              },
-         }
-      ],
-    structure: {
-         next_student_id: 'StorageValue<u32>',
-         student_info: 'StorageMap<u32, Student>',
-     }
-    }
+     class: 'StorageValue<u8>',
+     student: 'StorageMap<address, Student>',
+     teacher: 'StorageDoubleMap<address, u8, address>',
   },
 } as DubheConfig;
 ```
 
-### Schema events
+### Events
 
 ```tsx
 export const dubheConfig = {
   name: "example",
   description: "example desc",
-  schemas: {
-    student_management: {
-        data: [
-          {
-              name: "Class",
-              fields: {
-                    name: "string",
-                    teacher: "string",
-              },
-          },
-          {
-              name: "Student",
-              fields: {
-                    name: "string",
-                    age: "u8",
-                    class: "Class",
-              },
-         }
-      ],
-        structure: {
-         next_student_id: 'StorageValue<u32>',
-         student_info: 'StorageMap<u32, Student>',
-     },
-        events: [
-            {
-                name: "StudentAdded",
-                fields: {
-                        student_id: "u32",
-                        student: "Student",
-                },
-            },
-            {
-                name: "StudentRemoved",
-                fields: {
-                        student_id: "u32",
-                },
-            },
-        ]
-    }
+  data: {
+      Student: {
+          name: "string",
+          age: "u8",
+      },
   },
+  schemas: {
+     class: 'StorageValue<u8>',
+     student: 'StorageMap<address, Student>',
+     teacher: 'StorageDoubleMap<address, u8, address>',
+  },
+  events: {
+     StudentAdded : {
+        address: "address",
+        info: "Student",
+    },
+    StudentRemoved: {
+         address: "u32",
+    },
+ }
+} as DubheConfig;
+```
+
+### Errors
+```tsx
+export const dubheConfig = {
+  name: "example",
+  description: "example desc",
+  data: {
+      Student: {
+          name: "string",
+          age: "u8",
+      },
+  },
+  schemas: {
+     class: 'StorageValue<u8>',
+     student: 'StorageMap<address, Student>',
+     teacher: 'StorageDoubleMap<address, u8, address>',
+  },
+  events: {
+     StudentAdded : {
+        address: "address",
+        info: "Student",
+    },
+    StudentRemoved: {
+         address: "u32",
+    },
+  },
+  errors: {
+    StudentNotFound: "Student not found",
+    StudentAlreadyExists: "Student already exists",
+    },
 } as DubheConfig;
 ```
