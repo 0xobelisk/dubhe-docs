@@ -1,0 +1,96 @@
+# Players and movement
+
+In this section, we will accomplish the following:
+* Spawn in each unique wallet address as an entity with the Player, Movable, and Position components.
+* Operate on a player's Position component with a system to create movement.
+* Optimistically render player movement in the client.
+
+## Create the components as schemas
+To create schemas in Dubhe we are going to edit the dubhe.config.ts file. You can define schemas, their data, events, and errors information here. Dubhe then autogenerates all of the files needed to make sure your app knows these schemas exist.
+
+We're going to start by defining three new schema:
+* Player to determine which entities are players (e.g. distinct wallet addresses).
+* Movable to determine whether or not an entity can move.
+* Position to determine which position an entity is located on a 2D grid.
+
+The syntax is as follows:
+```ts filename="dubhe.config.ts" {10-12} copy showLineNumbers
+import { DubheConfig } from '@0xobelisk/sui-common';
+export const dubheConfig = {
+  name: 'monster_hunter',
+  description: 'monster_hunter contract',
+  data: {
+    Direction: ['North', 'East', 'South', 'West'],
+    Position: { x: 'u64', y: 'u64' },
+  },
+  schemas: {
+    player: 'StorageMap<address, bool>',
+    moveable: 'StorageMap<address, bool>',
+    position: 'StorageMap<address, Position>',
+  },
+  errors: {
+    AlreadyRegistered: 'This address is already registered',
+    CannotMove: 'This entity cannot move',
+  },
+} as DubheConfig;
+```
+
+## Create the map system and its methods
+In Dubhe, a system can have an arbitrary number of methods inside of it. Since we will be moving players around on a 2D map, we start the codebase off by creating a system that will encompass all of the methods related to the map: map_system.move.
+
+### Register method
+
+Before we add in the functionality of users moving we need to make sure each user is being properly identified as a player with the position and movable s. The former gives us a means of operating on it to create movement, and the latter allows us to grant the entity permission to use the move system.
+
+To solve for these problems we can add the register method, which will assign the Player, Position, and Movable schemas we created earlier, inside of map_system.move.
+```sui move filename="map_system.move" {6-13} copy showLineNumbers
+module monster_hunter::map_system;
+use monster_hunter::schema::Schema;
+use monster_hunter::position;
+use monster_hunter::errors::already_registered_error;
+
+public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    already_registered_error(!schema.player().contains(player));
+
+    schema.player().set(player, true);
+    schema.moveable().set(player, true);
+    schema.position().set(player, position::new(x, y));
+}
+```
+
+### Move position method
+Next we’ll add the move method to map_system.move. This will allow us to move users (e.g. the user's wallet address as their entityID) by updating their Position schema.
+```sui move filename="map_system.move" {15-31} copy showLineNumbers
+module monster_hunter::map_system;
+use monster_hunter::schema::Schema;
+use monster_hunter::position;
+use monster_hunter::errors::already_registered_error;
+
+public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    already_registered_error(!schema.player().contains(player));
+
+    schema.player().set(player, true);
+    schema.moveable().set(player, true);
+    schema.position().set(player, position::new(x, y));
+}
+
+public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    cannot_move_error(schema.moveable().contains[player]);
+
+    let (mut x, mut y) = schema.position()[player].get();
+    if (direction == direction::new_north()) {
+        y = y - 1;
+    } else if (direction == direction::new_east()) {
+        x = x + 1;
+    } else if (direction == direction::new_south()) {
+        y = y + 1;
+    } else if (direction == direction::new_west()) {
+        x = x - 1;
+    };
+
+    schema.position().set(player, position::new(x, y));
+}
+```

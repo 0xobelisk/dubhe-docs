@@ -1,0 +1,551 @@
+# A wild Monster appears
+
+To bring this all together we will now add the ability to generate encounters on tall grass in which the user can either capture the emojimon or flee the encounter.
+
+Adding encounters and all of their functionality will serve as a review of all the concepts we've learned so far:
+
+* Creating tables (i.e. components),
+* Creating and calling systems,
+* Optimistic rendering in the client
+* Client and contract queries.
+
+We will add the following features:
+
+1. Trigger encounters when players walk in tall grass
+2. Spawn monsters (i.e. emojimon) into the encounter
+3. Allow players to capture emojimon
+4. Allow players to flee encounters
+
+Before continuing, try figuring out what components and systems would need to be added to get the build all these features. You could even try building them—we've already taught you all that is needed (and you can view the gif in the Introduction as a reference).
+
+## Enable tall grass to trigger encounters
+
+Let's start by adding three new tables to dubhe.config.ts.
+
+* Encounterable can an entity engage in an encounter.
+* EncounterTrigger can an entity trigger an encounter when moved on by a player.
+* Encounter associate a player with an encounter.
+
+```ts filename="dubhe.config.ts" {9, 17-19, 25-26} copy showLineNumbers
+import { DubheConfig } from '@0xobelisk/sui-common';
+export const dubheConfig = {
+  name: 'monster_hunter',
+  description: 'monster_hunter contract',
+  data: {
+    Direction: ['North', 'East', 'South', 'West'],
+    TerrainType: ["None", "TallGrass", "Boulder"],
+    Position: { x: 'u64', y: 'u64' },
+    EncounterInfo: { monster: 'address', catch_attempts: 'u64' },
+  },
+  schemas: {
+    player: 'StorageMap<address, bool>',
+    moveable: 'StorageMap<address, bool>',
+    position: 'StorageMap<address, Position>',
+    map_config: 'StorageValue<MapConfig>',
+    obstruction: 'StorageMap<Position, bool>',
+    encounter: 'StorageMap<address, EncounterInfo>',
+    encounterable: 'StorageMap<address, bool>',
+    encounter_trigger: 'StorageMap<Position, bool>',
+  },
+  errors: {
+    AlreadyRegistered: 'This address is already registered',
+    CannotMove: 'This entity cannot move',
+    SpaceObstructed: 'This space is obstructed',
+    InEncounter: 'This player is already in an encounter',
+    NotInEncounter: 'This player is not in an encounter',
+  },
+} as DubheConfig;
+```
+
+We then have to make sure that players and tall grass are receiving these components properly.
+
+First let's make sure the client is being initialized properly in deploy_hook.move.
+```sui move filename="deploy_hook.move" {39-41} copy showLineNumbers
+module monster_hunter::deploy_hook;
+use monster_hunter::schema::Schema;
+use monster_hunter::terrain_type;
+use monster_hunter::map_config;
+use monster_hunter::position;
+
+public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
+    let  o = terrain_type::new_none();
+    let  t = terrain_type::new_tall_grass();
+    let  b = terrain_type::new_boulder();
+    let terrains = vector[
+        vector [o, o, o, o, o, o, t, o, o, o, o, o, o, o, o],
+        vector [o, o, t, o, o, o, o, o, t, o, o, o, o, b, o],
+        vector [o, t, t, t, t, o, o, o, o, o, o, o, o, o, o],
+        vector [o, o, t, t, t, t, o, o, o, o, b, o, o, o, o],
+        vector [o, o, o, o, t, t, o, o, o, o, o, o, o, o, o],
+        vector [o, o, o, b, b, o, o, o, o, o, o, o, o, o, o],
+        vector [o, t, o, o, o, b, b, o, o, o, o, t, o, o, o],
+        vector [o, o, t, t, o, o, o, o, o, t, o, b, o, o, t],
+        vector [o, o, t, o, o, o, o, t, t, t, o, b, b, o, o],
+        vector [o, o, o, o, o, o, o, t, t, t, o, b, t, o, t],
+        vector [o, b, o, o, o, b, o, o, t, t, o, b, o, o, t],
+        vector [o, o, b, o, o, o, t, o, t, t, o, o, b, t, t],
+        vector [o, o, b, o, o, o, t, o, t, t, o, o, b, t, t],
+    ];
+
+    let height = terrains.length();
+    let width = terrains[0].length();
+    schema.map_config().set(map_config::new(width, height, terrains));
+
+    let x: u64 = 0;
+    let y: u64 = 0;
+    y.range_do!(height, |y| {
+        x.range_do!(width, |x| {
+            let terrain = terrains[y][x];
+            let position = position::new(x, y);
+            if (terrain == terrain_type::new_boulder()) {
+                schema.obstruction().set(position, true);
+            } else if (terrain == terrain_type::new_tall_grass()) {
+                schema.encounter_trigger().set(position, true);
+            }
+        });
+    });
+}
+```
+Then let's update the spawn method in map_system.move to include the Encounterable table/component.
+```sui move filename="map_system.move" {22} copy showLineNumbers
+module monster_hunter::map_system;
+use monster_hunter::schema::Schema;
+use monster_hunter::position;
+use monster_hunter::errors::already_registered_error;
+use monster_hunter::errors::space_obstructed_error;
+
+public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    already_registered_error(!schema.player().contains(player));
+
+    // Constrain position to map size, wrapping around if necessary
+    let (width, height, _) = schema.map_config()[].get();
+    let x = (x + width) % width;
+    let y = (y + height) % height;
+
+    let position = position::new(x, y);
+    space_obstructed_error(!schema.obstruction().contains(position));
+
+    schema.player().set(player, true);
+    schema.moveable().set(player, true);
+    schema.position().set(player, position);
+    schema.encounterable().set(player, true);
+}
+
+public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    cannot_move_error(schema.moveable().contains[player]);
+
+    let (mut x, mut y) = schema.position()[player].get();
+    if (direction == direction::new_north()) {
+        y = y - 1;
+    } else if (direction == direction::new_east()) {
+        x = x + 1;
+    } else if (direction == direction::new_south()) {
+        y = y + 1;
+    } else if (direction == direction::new_west()) {
+        x = x - 1;
+    };
+
+    // Constrain position to map size, wrapping around if necessary
+    let (width, height, _) = schema.map_config()[].get();
+    let x = (x + width) % width;
+    let y = (y + height) % height;
+
+    let position = position::new(x, y);
+    space_obstructed_error(!schema.obstruction().contains(position));
+
+    schema.position().set(player, position);
+}
+```
+
+Now that tall grass is an encounter trigger, we can query for an encounter trigger as we move to a new position. We'll update the MapSystem to handle this.
+
+At this point we would ideally like to implement an element of randomness for triggering encounters in tall grass. However, due to the deterministic nature of blockchains and EVM applications, true randomness is not currently possible. For the purpose of this tutorial we will be leaving this as deterministic.
+```sui move filename="map_system.move" {27, 51-57} copy showLineNumbers
+module monster_hunter::map_system;
+use monster_hunter::schema::Schema;
+use monster_hunter::position;
+use monster_hunter::errors::already_registered_error;
+use monster_hunter::errors::space_obstructed_error;
+use sui::clock::Clock;
+
+public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    already_registered_error(!schema.player().contains(player));
+
+    // Constrain position to map size, wrapping around if necessary
+    let (width, height, _) = schema.map_config()[].get();
+    let x = (x + width) % width;
+    let y = (y + height) % height;
+
+    let position = position::new(x, y);
+    space_obstructed_error(!schema.obstruction().contains(position));
+
+
+    schema.player().set(player, true);
+    schema.moveable().set(player, true);
+    schema.position().set(player, position);
+    schema.encounterable().set(player, true);
+}
+
+public fun move_position(schema: &mut Schema, clock: &Clock, direction: Direction, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    cannot_move_error(schema.moveable().contains[player]);
+
+    let (mut x, mut y) = schema.position()[player].get();
+    if (direction == direction::new_north()) {
+        y = y - 1;
+    } else if (direction == direction::new_east()) {
+        x = x + 1;
+    } else if (direction == direction::new_south()) {
+        y = y + 1;
+    } else if (direction == direction::new_west()) {
+        x = x - 1;
+    };
+
+    // Constrain position to map size, wrapping around if necessary
+    let (width, height, _) = schema.map_config()[].get();
+    let x = (x + width) % width;
+    let y = (y + height) % height;
+
+    let position = position::new(x, y);
+    space_obstructed_error(!schema.obstruction().contains(position));
+
+    schema.position().set(player, position);
+
+    if(schema.player().contains(player) && schema.encounter_trigger().contains(position)) {
+        let rand = sui::clock::timestamp_ms(clock);
+        if (rand % 2 == 0) {
+            // TODO
+        }
+    }
+}
+```
+
+Now that we have all of the encounter logic setup we just want to take the last step of preventing movement while a player is in an encounter—this will be a modification of the move method (you should know where this is by now!)
+```sui move filename="map_system.move" {30} copy showLineNumbers
+module monster_hunter::map_system;
+use monster_hunter::schema::Schema;
+use monster_hunter::position;
+use monster_hunter::errors::already_registered_error;
+use monster_hunter::errors::space_obstructed_error;
+use sui::clock::Clock;
+
+public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    already_registered_error(!schema.player().contains(player));
+
+    // Constrain position to map size, wrapping around if necessary
+    let (width, height, _) = schema.map_config()[].get();
+    let x = (x + width) % width;
+    let y = (y + height) % height;
+
+    let position = position::new(x, y);
+    space_obstructed_error(!schema.obstruction().contains(position));
+
+
+    schema.player().set(player, true);
+    schema.moveable().set(player, true);
+    schema.position().set(player, position);
+    schema.encounterable().set(player, true);
+}
+
+public fun move_position(schema: &mut Schema, clock: &Clock, direction: Direction, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    cannot_move_error(schema.moveable().contains[player]);
+    in_encounter_error(!schema.encounter().contains(player));
+
+    let (mut x, mut y) = schema.position()[player].get();
+    if (direction == direction::new_north()) {
+        y = y - 1;
+    } else if (direction == direction::new_east()) {
+        x = x + 1;
+    } else if (direction == direction::new_south()) {
+        y = y + 1;
+    } else if (direction == direction::new_west()) {
+        x = x - 1;
+    };
+
+    // Constrain position to map size, wrapping around if necessary
+    let (width, height, _) = schema.map_config()[].get();
+    let x = (x + width) % width;
+    let y = (y + height) % height;
+
+    let position = position::new(x, y);
+    space_obstructed_error(!schema.obstruction().contains(position));
+
+    schema.position().set(player, position);
+
+    if(schema.player().contains(player) && schema.encounter_trigger().contains(position)) {
+        let rand = sui::clock::timestamp_ms(clock);
+        if (rand % 2 == 0) {
+            // TODO
+        }
+    }
+}
+```
+
+## Start encounter and spawn a monster
+We're almost ready start an encounter. What would an Emojimon battle be without an opponent? Let’s fix this by adding a monster!
+
+We'll add a new enum for MonsterType and use that in a new Monster table/component.
+```ts filename="dubhe.config.ts" {8, 21} copy showLineNumbers
+import { DubheConfig } from '@0xobelisk/sui-common';
+export const dubheConfig = {
+  name: 'monster_hunter',
+  description: 'monster_hunter contract',
+  data: {
+    Direction: ['North', 'East', 'South', 'West'],
+    TerrainType: ["None", "TallGrass", "Boulder"],
+    MonsterType: ["None", "Eagle", "Rat", "Caterpillar"],
+    Position: { x: 'u64', y: 'u64' },
+    EncounterInfo: { monster: 'address', catch_attempts: 'u64' },
+  },
+  schemas: {
+    player: 'StorageMap<address, bool>',
+    moveable: 'StorageMap<address, bool>',
+    position: 'StorageMap<address, Position>',
+    map_config: 'StorageValue<MapConfig>',
+    obstruction: 'StorageMap<Position, bool>',
+    encounter: 'StorageMap<address, EncounterInfo>',
+    encounterable: 'StorageMap<address, bool>',
+    encounter_trigger: 'StorageMap<Position, bool>',
+    monster: 'StorageMap<address, MonsterType>',
+  },
+  errors: {
+    AlreadyRegistered: 'This address is already registered',
+    CannotMove: 'This entity cannot move',
+    SpaceObstructed: 'This space is obstructed',
+    InEncounter: 'This player is already in an encounter',
+    NotInEncounter: 'This player is not in an encounter',
+  },
+} as DubheConfig;
+```
+
+Now we need a way to choose a type of monster when entering an encounter. We can add this logic to move method in map_system.move — but remember, we are doing this deterministically because of the constraints of the EVM.
+```sui move filename="map_system.move" {56, 61-74} copy showLineNumbers
+module monster_hunter::map_system;
+use monster_hunter::schema::Schema;
+use monster_hunter::position;
+use monster_hunter::errors::already_registered_error;
+use monster_hunter::errors::space_obstructed_error;
+use sui::clock::Clock;
+
+public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    already_registered_error(!schema.player().contains(player));
+
+    // Constrain position to map size, wrapping around if necessary
+    let (width, height, _) = schema.map_config()[].get();
+    let x = (x + width) % width;
+    let y = (y + height) % height;
+
+    let position = position::new(x, y);
+    space_obstructed_error(!schema.obstruction().contains(position));
+
+
+    schema.player().set(player, true);
+    schema.moveable().set(player, true);
+    schema.position().set(player, position);
+    schema.encounterable().set(player, true);
+}
+
+public fun move_position(schema: &mut Schema, clock: &Clock, direction: Direction, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    cannot_move_error(schema.moveable().contains[player]);
+    in_encounter_error(!schema.encounter().contains(player));
+
+    let (mut x, mut y) = schema.position()[player].get();
+    if (direction == direction::new_north()) {
+        y = y - 1;
+    } else if (direction == direction::new_east()) {
+        x = x + 1;
+    } else if (direction == direction::new_south()) {
+        y = y + 1;
+    } else if (direction == direction::new_west()) {
+        x = x - 1;
+    };
+
+    // Constrain position to map size, wrapping around if necessary
+    let (width, height, _) = schema.map_config()[].get();
+    let x = (x + width) % width;
+    let y = (y + height) % height;
+
+    let position = position::new(x, y);
+    space_obstructed_error(!schema.obstruction().contains(position));
+
+    schema.position().set(player, position);
+
+    if(schema.player().contains(player) && schema.encounter_trigger().contains(position)) {
+        let rand = sui::clock::timestamp_ms(clock);
+        if (rand % 2 == 0) {
+            start_encounter(schema, clock, player);
+        }
+    }
+}
+
+fun start_encounter(schema: &mut Schema, clock: &Clock, player: address) {
+    let monster = sui::clock::timestamp_ms(clock) as u256;
+    let mut monster_type = monster_type::new_none();
+    if (monster % 4 == 1) {
+        monster_type = monster_type::new_eagle();
+    } else if (monster % 4 == 2) {
+        monster_type = monster_type::new_rat();
+    } else if (monster % 4 == 3) {
+        monster_type = monster_type::new_caterpillar();
+    };
+
+    schema.monster().set(address::from_u256(monster), monster_type);
+    schema.encounter().set(player, encounter_info::new(monster, 0));
+}
+```
+
+## Capture monster
+In order to have a proper capture system we will need a few new additions:
+
+* A component that designates whether or not a user has captured an emojimon.
+* A new method to throw emojiballs and catch emojimon.
+* A way to represent the result of a catch attempt.
+* Showing this interaction in the client.
+
+The first step is modifying the Dubhe config to add the necessary tables.
+
+OwnedBy will use a bytes32 because we use this for representing entity IDs, so one entity can own another entity by having an OwnedBy component that points to the owner entity ID.
+
+We also need a way to represent the catch attempt. We’ll add a MonsterCatchResult enum with the different types of results of a catch attempt (missed, caught, fled).
+
+We’ll add MonsterCatchAttempt as an offchain table to broadcast the catch attempt to clients without storing any data on chain. This will allow the client to understand these interactions and render/animate them accordingly. You can think of offchain tables like native Solidity events but with the same structure and encoding as regular tables.
+
+Go ahead and add both of these to the Dubhe config.
+```ts filename="dubhe.config.ts" {9, 23, 32-38} copy showLineNumbers
+import { DubheConfig } from '@0xobelisk/sui-common';
+export const dubheConfig = {
+  name: 'monster_hunter',
+  description: 'monster_hunter contract',
+  data: {
+    Direction: ['North', 'East', 'South', 'West'],
+    TerrainType: ["None", "TallGrass", "Boulder"],
+    MonsterType: ["None", "Eagle", "Rat", "Caterpillar"],
+    MonsterCatchResult: ["Missed", "Caught", "Fled"],
+    Position: { x: 'u64', y: 'u64' },
+    EncounterInfo: { monster: 'address', catch_attempts: 'u64' },
+  },
+  schemas: {
+    player: 'StorageMap<address, bool>',
+    moveable: 'StorageMap<address, bool>',
+    position: 'StorageMap<address, Position>',
+    map_config: 'StorageValue<MapConfig>',
+    obstruction: 'StorageMap<Position, bool>',
+    encounter: 'StorageMap<address, EncounterInfo>',
+    encounterable: 'StorageMap<address, bool>',
+    encounter_trigger: 'StorageMap<Position, bool>',
+    monster: 'StorageMap<address, MonsterType>',
+    owned_by: 'StorageMap<address, address>',
+  },
+  errors: {
+    AlreadyRegistered: 'This address is already registered',
+    CannotMove: 'This entity cannot move',
+    SpaceObstructed: 'This space is obstructed',
+    InEncounter: 'This player is already in an encounter',
+    NotInEncounter: 'This player is not in an encounter',
+  },
+ events: {
+    MonsterCatchAttempt: {
+      player: 'address',
+      monster: 'address',
+      result: 'MonsterCatchResult',
+    },
+  },
+} as DubheConfig;
+```
+
+Next we’ll implement a way for the player to throw an emojiball and capture the emojimon. map_system.move is getting crowded, and is concerned with logic that affects the map, so we can start up a new system here. Let’s call it encounter_system.move and add the first method, throwBall.
+
+We also want the emojimon to be able to escape if the fail throws multiple times, just like in Pokémon. This is where the actionCount on our Encounter table comes in. We’ll use that to store how many attempts we’ve made and cause the monster to flee if we’ve made too many attempts.
+```sui move filename="encounter_system.move" copy showLineNumbers
+module monster_hunter::encounter_system;
+use monster_hunter::schema::Schema;
+use monster_hunter::monster_catch_result;
+use monster_hunter::events::monster_catch_attempt_event;
+use monster_hunter::errors::not_in_encounter_error;
+use sui::random::Random;
+use sui::random;
+
+public fun throw_ball(schema: &mut Schema, random: &Random, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    not_in_encounter_error(schema.encounter().contains(player));
+
+    let (monster, catch_attempts) = schema.encounter()[player].get();
+
+    let mut generator = random::new_generator(random, ctx);
+    let rand = random::generate_u128(&mut generator);
+
+    if (rand % 2 == 0) {
+        // 50% chance to catch monster
+        monster_catch_attempt_event(player, monster, monster_catch_result::new_caught());
+        schema.owned_by().set(monster, player);
+        schema.encounter().remove(player);
+    } else if (catch_attempts >= 2) {
+        // Missed 2 times, monster escapes
+        monster_catch_attempt_event(player, monster, monster_catch_result::new_fled());
+        schema.monster().remove(monster);
+        schema.encounter().remove(player);
+    } else {
+        // Throw missed!
+        monster_catch_attempt_event(player, monster, monster_catch_result::new_missed());
+        let mut encounter_info = schema.encounter()[player];
+        encounter_info.set_catch_attempts(catch_attempts + 1);
+        schema.encounter().set(player, encounter_info);
+    }
+}
+```
+
+## Flee encounters
+Last but not least, players should be able to flee encounters. We can add this with a flee method in encounter_system.move as well. To keep it simple we’ll guarantee that the player can always run away safely.
+```sui move filename="encounter_system.move" {37-44} copy showLineNumbers
+module monster_hunter::encounter_system;
+use monster_hunter::schema::Schema;
+use monster_hunter::monster_catch_result;
+use monster_hunter::events::monster_catch_attempt_event;
+use monster_hunter::errors::not_in_encounter_error;
+use sui::random::Random;
+use sui::random;
+
+public fun throw_ball(schema: &mut Schema, random: &Random, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    not_in_encounter_error(schema.encounter().contains(player));
+
+    let (monster, catch_attempts) = schema.encounter()[player].get();
+
+    let mut generator = random::new_generator(random, ctx);
+    let rand = random::generate_u128(&mut generator);
+
+    if (rand % 2 == 0) {
+        // 50% chance to catch monster
+        monster_catch_attempt_event(player, monster, monster_catch_result::new_caught());
+        schema.owned_by().set(monster, player);
+        schema.encounter().remove(player);
+    } else if (catch_attempts >= 2) {
+        // Missed 2 times, monster escapes
+        monster_catch_attempt_event(player, monster, monster_catch_result::new_fled());
+        schema.monster().remove(monster);
+        schema.encounter().remove(player);
+    } else {
+        // Throw missed!
+        monster_catch_attempt_event(player, monster, monster_catch_result::new_missed());
+        let mut encounter_info = schema.encounter()[player];
+        encounter_info.set_catch_attempts(catch_attempts + 1);
+        schema.encounter().set(player, encounter_info);
+    }
+}
+
+public fun flee(schema: &mut Schema, ctx: &mut TxContext) {
+    let player = ctx.sender();
+    not_in_encounter_error(schema.encounter().contains(player));
+
+    let encounter_info  = schema.encounter()[player];
+    schema.monster().remove(encounter_info.get_monster());
+    schema.encounter().remove(player);
+}
+```
