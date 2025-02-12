@@ -112,7 +112,7 @@ touch contracts/counter/sources/systems/message.move
 
 This can be easily achieved with the help of Dubhe's code generation. The contents of the file:
 
-```move move filename="message.move"
+```move filename="message.move"
 module dms::message_system {
     use std::ascii::String;
     use dms::schema::Schema;
@@ -211,7 +211,7 @@ Errors and events are already generated.
 
 First we do an error check, the input content must be greater than 0.
 
-```move move filename="message.move" {4, 7} copy showLineNumbers
+```move filename="message.move" {4, 7} copy showLineNumbers
 module dms::message_system {
     use std::ascii::String;
     use dms::schema::Schema;
@@ -226,7 +226,7 @@ module dms::message_system {
 
 Finally we add events to the contract.
 
-```move move filename="message.move" {5, 10} copy showLineNumbers
+```move filename="message.move" {5, 10} copy showLineNumbers
 module dms::message_system {
     use std::ascii::String;
     use dms::schema::Schema;
@@ -247,7 +247,7 @@ By this point we need to write the contents of the deploy_hook, which will be au
 dubhe-template-project/contracts/counter/sources/scripts/deploy_hook.move
 ```
 
-```move move filename="deploy_hook.move" {12} copy showLineNumbers
+```move filename="deploy_hook.move" {12} copy showLineNumbers
   // Copyright (c) Obelisk Labs, Inc.
   // SPDX-License-Identifier: Apache-2.0
   #[allow(unused_use)]

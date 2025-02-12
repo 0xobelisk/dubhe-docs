@@ -103,7 +103,7 @@ export const dubheConfig = {
 } as DubheConfig;
 ```
 
-```move move
+```move
 module counter::counter_system {
     use counter::counter_schema::Counter;
     use counter::counter_event_increment;
@@ -166,7 +166,7 @@ Update deploy log: /Volumes/project/dubhe/packages/create-dubhe/template/contrac
 
 Now we need to upgrade the contract, we put a maximum limit on the input number, it must be less than 100.
 
-```move move sui move filename="counter_system.move" {8} copy showLineNumbers
+```move sui move filename="counter_system.move" {8} copy showLineNumbers
 module counter::counter_system {
     use counter::counter_schema::Counter;
     use counter::counter_event_increment;
@@ -258,7 +258,7 @@ pnpm dubhe schemagen
 
 Then we start writing the contract.
 
-```move move sui move filename="counter_system.move" {11-14} copy showLineNumbers
+```move sui move filename="counter_system.move" {11-14} copy showLineNumbers
 module counter::counter_system {
     use counter::counter_schema::Counter;
     use counter::counter_event_increment;
@@ -291,7 +291,7 @@ module counter::counter_system {
 Since we've changed Counter's Schema, we need to migrate the Schema, but don't worry, the migration has already been automated by Dubhe, so you just need to write your own logic.
 You need to write a migrate_to_v2 method that calls Schema's migrate method.
 
-```move move sui move filename="scripts/migrate.move" {11-16} copy showLineNumbers
+```move sui move filename="scripts/migrate.move" {11-16} copy showLineNumbers
 module counter::migrate {
   use sui::package::UpgradeCap;
   use counter::counter_schema::Counter;

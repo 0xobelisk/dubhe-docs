@@ -49,7 +49,7 @@ Before we add in the functionality of users moving we need to make sure each use
 
 To solve for these problems we can add the register method, which will assign the Player, Position, and Movable schemas we created earlier, inside of map_system.move.
 
-```move move filename="map_system.move" {6-13} copy showLineNumbers
+```move filename="map_system.move" {6-13} copy showLineNumbers
 module monster_hunter::map_system;
 use monster_hunter::schema::Schema;
 use monster_hunter::position;
@@ -69,7 +69,7 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
 
 Next we'll add the move method to map_system.move. This will allow us to move users (e.g. the user's wallet address as their entityID) by updating their Position schema.
 
-```move move filename="map_system.move" {15-31} copy showLineNumbers
+```move filename="map_system.move" {15-31} copy showLineNumbers
 module monster_hunter::map_system;
 use monster_hunter::schema::Schema;
 use monster_hunter::position;
@@ -105,7 +105,7 @@ public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut Tx
 
 ### Call the map system from the client
 
-We’ll fill in the `register`, `move_position` methods in our client’s `page.tsx/initializeGameState`.
+We'll fill in the `register`, `move_position` methods in our client's `page.tsx/initializeGameState`.
 
 ```tsx filename="src/app/page.tsx" {1-2, 11-18, 37-64, 101-115} copy showLineNumbers
 import { loadMetadata, Dubhe, Transaction } from "@0xobelisk/sui-client";
@@ -223,7 +223,7 @@ useEffect(() => {
       });
 
       await initializeGameState(dubhe);
-      await subscribeToEvents(dubhe); // TODO: set the indexer api subscription
+      await subscribeToEvents(dubhe);
     } catch (error) {
       toast.error("Failed to initialize game");
       setIsInitialized(false);
@@ -245,8 +245,6 @@ useEffect(() => {
 
 <summary>Explanation</summary>
 
-### Dubhe Client Initialization
-
 ```ts
 const dubhe = new Dubhe({
   networkType: NETWORK,
@@ -257,8 +255,6 @@ const dubhe = new Dubhe({
 ```
 
 Initializes a Dubhe client instance. For detailed configuration parameters, please refer to [Client Configuration Guide](/dubhe/sui/client).
-
-### Player Registration Check
 
 ```ts
 let have_player = await dubhe.getStorageItem({
@@ -272,8 +268,6 @@ let have_player = await dubhe.getStorageItem({
 - `name`: Schema name defined in dubhe.config.ts
 - `key1`: Current user's address
 - Returns `undefined` if player hasn't registered
-
-### Player Registration Process
 
 ```ts
 const registerNewPlayer = async (dubhe: Dubhe) => {
