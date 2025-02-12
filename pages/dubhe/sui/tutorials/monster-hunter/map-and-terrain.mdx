@@ -2,9 +2,9 @@
 
 In this section, we will accomplish the following:
 
-* Configure the map and initialize it in the client.
-* Add terrain (tall grass and boulders) to the map.
-* Prevent movement into boulders.
+- Configure the map and initialize it in the client.
+- Add terrain (tall grass and boulders) to the map.
+- Prevent movement into boulders.
 
 ## Map config
 
@@ -13,30 +13,31 @@ At this point we have the concept of a 2D grid but there is no official "map" an
 Go ahead and add the MapConfig as a singleton table in the Dubhe config (dubhe.config.ts).
 
 ```ts filename="dubhe.config.ts" {7,14} copy showLineNumbers
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig } from "@0xobelisk/sui-common";
 export const dubheConfig = {
-  name: 'monster_hunter',
-  description: 'monster_hunter contract',
+  name: "monster_hunter",
+  description: "monster_hunter contract",
   data: {
-    Direction: ['North', 'East', 'South', 'West'],
+    Direction: ["North", "East", "South", "West"],
     TerrainType: ["None", "TallGrass", "Boulder"],
-    Position: { x: 'u64', y: 'u64' },
+    Position: { x: "u64", y: "u64" },
   },
   schemas: {
-    player: 'StorageMap<address, bool>',
-    moveable: 'StorageMap<address, bool>',
-    position: 'StorageMap<address, Position>',
-    map_config: 'StorageValue<MapConfig>',
+    player: "StorageMap<address, bool>",
+    moveable: "StorageMap<address, bool>",
+    position: "StorageMap<address, Position>",
+    map_config: "StorageValue<MapConfig>",
   },
   errors: {
-    AlreadyRegistered: 'This address is already registered',
-    CannotMove: 'This entity cannot move',
+    AlreadyRegistered: "This address is already registered",
+    CannotMove: "This entity cannot move",
   },
 } as DubheConfig;
 ```
+
 ## Add terrain
 
-```sui move filename="deploy_hook.move" {3-4, 7-28} copy showLineNumbers
+```move move filename="deploy_hook.move" {3-4, 7-28} copy showLineNumbers
 module monster_hunter::deploy_hook ;
 use monster_hunter::schema::Schema;
 use monster_hunter::terrain_type;
@@ -73,37 +74,39 @@ Note that deploy_hook.move will only run once per contract, so you will need to 
 Now let’s render the terrain in the client via GameBoard.tsx.
 
 ## Turn boulders into obstructions
+
 Although boulders are rendering on the map at this point, they do not yet prevent movement in the way we want them to. To accomplish this we will add an Obstruction schema and query for entities with that schema in our move method.
 
 Let's start by adding the schema to the Dubhe config:
+
 ```ts filename="dubhe.config.ts" {15, 20} copy showLineNumbers
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig } from "@0xobelisk/sui-common";
 export const dubheConfig = {
-  name: 'monster_hunter',
-  description: 'monster_hunter contract',
+  name: "monster_hunter",
+  description: "monster_hunter contract",
   data: {
-    Direction: ['North', 'East', 'South', 'West'],
+    Direction: ["North", "East", "South", "West"],
     TerrainType: ["None", "TallGrass", "Boulder"],
-    Position: { x: 'u64', y: 'u64' },
+    Position: { x: "u64", y: "u64" },
   },
   schemas: {
-    player: 'StorageMap<address, bool>',
-    moveable: 'StorageMap<address, bool>',
-    position: 'StorageMap<address, Position>',
-    map_config: 'StorageValue<MapConfig>',
-    obstruction: 'StorageMap<Position, bool>',
+    player: "StorageMap<address, bool>",
+    moveable: "StorageMap<address, bool>",
+    position: "StorageMap<address, Position>",
+    map_config: "StorageValue<MapConfig>",
+    obstruction: "StorageMap<Position, bool>",
   },
   errors: {
-    AlreadyRegistered: 'This address is already registered',
-    CannotMove: 'This entity cannot move',
-    SpaceObstructed: 'This space is obstructed',
+    AlreadyRegistered: "This address is already registered",
+    CannotMove: "This entity cannot move",
+    SpaceObstructed: "This space is obstructed",
   },
 } as DubheConfig;
 ```
 
 We'll then make sure deploy_hook.move initializes the boulders properly (with the obstruction and position component) so we can query them later.
 
-```sui move filename="deploy_hook.move" {5, 31-41} copy showLineNumbers
+```move move filename="deploy_hook.move" {5, 31-41} copy showLineNumbers
 module monster_hunter::deploy_hook;
 use monster_hunter::schema::Schema;
 use monster_hunter::terrain_type;
@@ -149,7 +152,8 @@ public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
 ```
 
 Then let's use this schema in the move and register methods in map_system.move.
-```sui move filename="map_system.move" {5, 10-11, 33-34} copy showLineNumbers
+
+```move move filename="map_system.move" {5, 10-11, 33-34} copy showLineNumbers
 module monster_hunter::map_system;
 use monster_hunter::schema::Schema;
 use monster_hunter::position;
@@ -190,8 +194,10 @@ public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut Tx
 ```
 
 ## Wrap map boundary
+
 Currently, players can move off of the bounds of the map. We'll address this by updating the spawn and move methods in map_system.move to wrap the player coordinate around the map size.
-```sui move filename="map_system.move" {11-14, 40-43} copy showLineNumbers
+
+```move move filename="map_system.move" {11-14, 40-43} copy showLineNumbers
 module monster_hunter::map_system;
 use monster_hunter::schema::Schema;
 use monster_hunter::position;
@@ -241,3 +247,4 @@ public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut Tx
 
     schema.position().set(player, position);
 }
+```

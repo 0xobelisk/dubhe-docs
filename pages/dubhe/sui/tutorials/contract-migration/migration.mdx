@@ -74,36 +74,36 @@ Any funds sent to them on Mainnet or any other live network WILL BE LOST.
 ## Publish a contract
 
 ```ts
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig } from "@0xobelisk/sui-common";
 export const dubheConfig = {
-	name: 'counter',
-	description: 'counter contract',
-	schemas: {
-		counter: {
-			structure: {
-				value: 'StorageValue<u32>',
-			},
-			events: [
-				{
-					name: 'Increment',
-					fields: {
-						value: 'u32',
-					},
-				},
-			],
-			errors: [
-				{
-					name: 'InvalidIncrement',
-					code: 0,
-					description: 'Increment must be greater than zero',
-				},
-			]
-		},
-	},
+  name: "counter",
+  description: "counter contract",
+  schemas: {
+    counter: {
+      structure: {
+        value: "StorageValue<u32>",
+      },
+      events: [
+        {
+          name: "Increment",
+          fields: {
+            value: "u32",
+          },
+        },
+      ],
+      errors: [
+        {
+          name: "InvalidIncrement",
+          code: 0,
+          description: "Increment must be greater than zero",
+        },
+      ],
+    },
+  },
 } as DubheConfig;
 ```
 
-```sui move
+```move move
 module counter::counter_system {
     use counter::counter_schema::Counter;
     use counter::counter_event_increment;
@@ -161,11 +161,12 @@ Update deploy log: /Volumes/project/dubhe/packages/create-dubhe/template/contrac
 ✅ Contract Publication Complete
 
 ```
+
 ## Migrate a contract
 
 Now we need to upgrade the contract, we put a maximum limit on the input number, it must be less than 100.
 
-```sui move sui move filename="counter_system.move" {8} copy showLineNumbers
+```move move sui move filename="counter_system.move" {8} copy showLineNumbers
 module counter::counter_system {
     use counter::counter_schema::Counter;
     use counter::counter_event_increment;
@@ -187,6 +188,7 @@ module counter::counter_system {
     }
 }
 ```
+
 After modifying the contract, we upgrade.
 
 ```bash
@@ -211,49 +213,52 @@ If you want to modify the previous Counter's Schema structure it is also support
 We add the last_value field to store the last number, and add an event to throw the stored last_value.
 
 ```ts move filename="dubhe.config.ts" {9, 19-24} copy showLineNumbers
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig } from "@0xobelisk/sui-common";
 
 export const dubheConfig = {
-	name: 'counter',
-	description: 'counter contract',
-	schemas: {
-		counter: {
-			structure: {
-				value: 'StorageValue<u32>',
-				last_value: 'StorageValue<u32>',
-			},
-			events: [
-				{
-					name: 'Increment',
-					fields: {
-						value: 'u32',
-					},
-				},
-				{
-					name: 'LastValue',
-					fields: {
-						value: 'u32',
-					},
-				},
-			],
-			errors: [
-				{
-					name: 'InvalidIncrement',
-					code: 0,
-					description: 'Increment must be greater than zero',
-				},
-			]
-		},
-	},
+  name: "counter",
+  description: "counter contract",
+  schemas: {
+    counter: {
+      structure: {
+        value: "StorageValue<u32>",
+        last_value: "StorageValue<u32>",
+      },
+      events: [
+        {
+          name: "Increment",
+          fields: {
+            value: "u32",
+          },
+        },
+        {
+          name: "LastValue",
+          fields: {
+            value: "u32",
+          },
+        },
+      ],
+      errors: [
+        {
+          name: "InvalidIncrement",
+          code: 0,
+          description: "Increment must be greater than zero",
+        },
+      ],
+    },
+  },
 } as DubheConfig;
 ```
+
 After modifying the config file, we need to execute the schemagen command
+
 ```bash
 pnpm dubhe schemagen
 ```
 
 Then we start writing the contract.
-```sui move sui move filename="counter_system.move" {11-14} copy showLineNumbers
+
+```move move sui move filename="counter_system.move" {11-14} copy showLineNumbers
 module counter::counter_system {
     use counter::counter_schema::Counter;
     use counter::counter_event_increment;
@@ -285,7 +290,8 @@ module counter::counter_system {
 
 Since we've changed Counter's Schema, we need to migrate the Schema, but don't worry, the migration has already been automated by Dubhe, so you just need to write your own logic.
 You need to write a migrate_to_v2 method that calls Schema's migrate method.
-```sui move sui move filename="scripts/migrate.move" {11-16} copy showLineNumbers
+
+```move move sui move filename="scripts/migrate.move" {11-16} copy showLineNumbers
 module counter::migrate {
   use sui::package::UpgradeCap;
   use counter::counter_schema::Counter;
