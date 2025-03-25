@@ -22,7 +22,7 @@ const config: DocsThemeConfig = {
   banner: {
     key: "v1-0-0-rc1 pre-mainnet released",
   // text: <a href="/docs/release-notes">🎉 v1.6.5 Released →</a>,
-    content: <a href="/docs/release-notes">🎉 v1.0.0-rc1 pre-mainnet Released →</a>,
+    content: <a href="https://github.com/0xobelisk/dubhe/releases">🎉 v1.1.0-Mainnet Released →</a>,
   },
   navigation: {
     prev: true,
