@@ -30,14 +30,17 @@ Options:
   --network            Network to index (mainnet/testnet/localnet) [default: "localnet"]
   --config-path        Path to dubhe config file [default: "dubhe.config.ts"]
   --force-regenesis    Force clear and restart indexing [default: false]
-  --schema-id          Schema ID to filter transactions
+  --rpc-url           Custom RPC URL for the node
+  --schema-id         Schema ID to filter transactions
   --host              Host to listen on [default: "0.0.0.0"]
   --port              Port to listen on [default: 3001]
-  --sqlite-filename    SQLite database filename [default: "./indexer.db"]
-  --sync-limit        Number of transactions to sync per time [default: 50]
+  --sqlite-filename   SQLite database filename [default: ".data/indexer.db"]
+  --sync-limit       Number of transactions to sync per time [default: 50]
+  --sync-interval    Number of milliseconds between syncs [default: 2000]
   --default-page-size Page size for pagination [default: 10]
   --pagination-limit  Maximum pagination limit [default: 100]
-  --sentry-dsn        Sentry DSN for error tracking
+  --sentry-dsn       Sentry DSN for error tracking
+  --debug            Enable debug mode [default: false]
 ```
 
 ## API Endpoints
@@ -45,6 +48,9 @@ Options:
 ### HTTP Endpoints
 
 - `GET /graphql` - GraphQL endpoint
+- `GET /health` - Health check endpoint
+- `GET /metrics` - Metrics endpoint
+- `GET /` - Hello world endpoint
 
 Access the GraphQL Playground by visiting:
 
@@ -130,15 +136,101 @@ while (currentPage.pageInfo.hasNextPage) {
 3. Subscribe to real-time updates:
 
 ```typescript
+import { SubscriptionKind } from "@0xobelisk/sui-client";
+
+// Subscribe to both schema and event updates
 const websocket = await dubhe.subscribe(
-  ["monster_catch_attempt_event", "position"],
+  [
+    {
+      kind: SubscriptionKind.Schema,
+      name: "position", // Schema name
+    },
+    {
+      kind: SubscriptionKind.Event,
+      name: "monster_catch_attempt", // Event name
+      sender: "0x123...", // Optional: Filter by sender address
+    },
+  ],
   (data) => {
     console.log("Received update:", data);
   }
 );
+
+// Remember to close the WebSocket connection when no longer needed
+websocket.close();
 ```
 
 For more detailed examples of querying indexed data, including complex filtering, advanced pagination, and error handling, please refer to the [Client Documentation - Indexer Integration](/dubhe/sui/client#indexer-integration) section.
+
+## Example Projects
+
+### Indexer 101 - Basic Tutorial
+
+A step-by-step tutorial demonstrating how to set up and use Dubhe Indexer.
+
+- **GitHub Repository**: [sui-indexer-101](https://github.com/0xobelisk/sui-indexer-101)
+- Features covered:
+  - Basic indexer setup
+  - Schema configuration
+  - Event tracking
+  - Real-time subscriptions
+  - Query examples
+
+### MonsterHunter - Advanced Example
+
+A complete game implementation showcasing advanced indexer features.
+
+- **GitHub Repository**: [MonsterHunter](https://github.com/0xobelisk/MonsterHunter)
+- Features demonstrated:
+  - Complex schema relationships
+  - Real-time game state updates
+  - Event-driven architecture
+  - Performance optimization
+  - Advanced querying patterns
+
+### Running the Examples
+
+1. Clone the repository:
+
+```bash
+# For basic tutorial
+git clone https://github.com/0xobelisk/sui-indexer-101
+
+# For advanced example
+git clone https://github.com/0xobelisk/MonsterHunter
+```
+
+2. Install dependencies:
+
+```bash
+pnpm install
+```
+
+3. Start the local development network:
+
+```bash
+pnpm start:localnet
+```
+
+4. Deploy and initialize:
+
+```bash
+# This command will:
+# - Deploy the smart contract
+# - Start the indexer service
+# - Initialize necessary configurations
+pnpm setup:localnet
+```
+
+5. Run the example application:
+
+```bash
+pnpm dev
+```
+
+> **Note**: Make sure your local Sui network is running before deploying the contract and starting the indexer.
+
+For detailed setup instructions and troubleshooting, please refer to our [Documentation](/dubhe/sui/indexer).
 
 ## Support
 

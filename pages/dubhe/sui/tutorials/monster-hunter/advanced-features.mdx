@@ -4,7 +4,9 @@
 
 In the previous sections, we learned how to initialize the world state and interact with contract methods. Now, we need to add a subscription function that listens to data based on schema names and event names. This enables real-time world state updates during gameplay, effectively decoupling state modification (contract method calls) from state updates.
 
-```tsx filename="src/app/page.tsx" {13-92} copy showLineNumbers
+```tsx filename="src/app/page.tsx" {15-116} copy showLineNumbers
+import { SubscriptionKind } from "@0xobelisk/sui-client";
+
 /**
  * Handles real-time game events through WebSocket subscription
  * @param dubhe - Dubhe client instance
@@ -18,7 +20,25 @@ const subscribeToEvents = async (dubhe: Dubhe) => {
 
     // Subscribe to multiple event types
     const sub = await dubhe.subscribe(
-      ["position", "encounter", "monster_catch_attempt_event", "player"],
+      [
+        {
+          kind: SubscriptionKind.Schema,
+          name: "position",
+        },
+        {
+          kind: SubscriptionKind.Schema,
+          name: "encounter",
+        },
+        {
+          kind: SubscriptionKind.Event,
+          name: "monster_catch_attempt",
+          sender: dubhe.getAddress(),
+        },
+        {
+          kind: SubscriptionKind.Schema,
+          name: "player",
+        },
+      ],
       (data) => {
         console.log("Received real-time data:", data);
 
@@ -82,8 +102,12 @@ const subscribeToEvents = async (dubhe: Dubhe) => {
         }
 
         // Handle monster catch attempt results
-        else if (data.name === "monster_catch_attempt_event") {
+        else if (data.name === "monster_catch_attempt") {
           const result = Object.keys(data.value.result)[0];
+          console.log(
+            "Monster catch attempt event received",
+            data.value.result
+          );
           toast("Monster catch attempt event received", {
             description: `Result: ${CATCH_RESULTS[result]}`,
           });
@@ -159,7 +183,7 @@ else if (data.name === "encounter") {
 **Monster Catch Attempt Event Handling**
 
 ```typescript
-else if (data.name === "monster_catch_attempt_event") {
+else if (data.name === "monster_catch_attempt") {
   const result = Object.keys(data.value.result)[0];
   // ... result handling
 }
