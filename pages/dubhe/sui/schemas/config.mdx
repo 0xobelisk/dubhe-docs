@@ -46,6 +46,7 @@ export const dubheConfig = {
 Schema currently supports three storage structures, StorageValue, StorageMap, StorageDoubleMap.
 
 ```tsx
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "example",
   description: "example desc",
@@ -56,9 +57,9 @@ export const dubheConfig = {
       },
   },
   schemas: {
-     class: 'StorageValue<u8>',
-     student: 'StorageMap<address, Student>',
-     teacher: 'StorageDoubleMap<address, u8, address>',
+     class: storage('u8'),
+     student: storage('address', 'Student'),
+     teacher: storage('address', 'u8', 'address'),
   },
 } as DubheConfig;
 ```
@@ -66,6 +67,7 @@ export const dubheConfig = {
 ### Events
 
 ```tsx
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "example",
   description: "example desc",
@@ -76,16 +78,16 @@ export const dubheConfig = {
       },
   },
   schemas: {
-     class: 'StorageValue<u8>',
-     student: 'StorageMap<address, Student>',
-     teacher: 'StorageDoubleMap<address, u8, address>',
+     class: storage('u8'),
+     student: storage('address', 'Student'),
+     teacher: storage('address', 'u8', 'address'),
   },
   events: {
-     StudentAdded : {
+     student_added : {
         address: "address",
         info: "Student",
     },
-    StudentRemoved: {
+    student_removed: {
          address: "u32",
     },
  }
@@ -94,6 +96,7 @@ export const dubheConfig = {
 
 ### Errors
 ```tsx
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "example",
   description: "example desc",
@@ -104,22 +107,22 @@ export const dubheConfig = {
       },
   },
   schemas: {
-     class: 'StorageValue<u8>',
-     student: 'StorageMap<address, Student>',
-     teacher: 'StorageDoubleMap<address, u8, address>',
+     class: storage('u8'),
+     student: storage('address', 'Student'),
+     teacher: storage('address', 'u8', 'address'),
   },
   events: {
-     StudentAdded : {
+     student_added : {
         address: "address",
         info: "Student",
     },
-    StudentRemoved: {
+    student_removed: {
          address: "u32",
     },
-  },
+ },
   errors: {
-    StudentNotFound: "Student not found",
-    StudentAlreadyExists: "Student already exists",
+    student_not_found: "Student not found",
+    student_already_exists: "Student already exists",
     },
 } as DubheConfig;
 ```

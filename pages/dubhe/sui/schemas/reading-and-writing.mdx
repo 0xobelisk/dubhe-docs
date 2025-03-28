@@ -14,6 +14,7 @@ The `schemagen` tool of the Dubhe CLI can create libraries for each schema that 
 Assume the following configuration exists.
 
 ```tsx
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "example",
   description: "example desc",
@@ -24,22 +25,22 @@ export const dubheConfig = {
       },
   },
   schemas: {
-     class: 'StorageValue<u8>',
-     student: 'StorageMap<address, Student>',
-     teacher: 'StorageDoubleMap<address, u8, address>',
+     class: storage('u8'),
+     student: storage('address', 'Student'),
+     teacher: storage('address', 'u8', 'address'),
   },
   events: {
-     StudentAdded : {
+     student_added : {
         address: "address",
         info: "Student",
     },
-    StudentRemoved: {
+    student_removed: {
          address: "u32",
     },
-  },
+ },
   errors: {
-    StudentNotFound: "Student not found",
-    StudentAlreadyExists: "Student already exists",
+    student_not_found: "Student not found",
+    student_already_exists: "Student already exists",
     },
 } as DubheConfig;
 ```
@@ -48,14 +49,14 @@ export const dubheConfig = {
 Events defined in config will be generated under the events module;
 
 ```move
-use example::events::student_added_event;
-use example::events::student_removed_event;
-use ecample::student;
+use example::example_events::student_added_event;
+use example::example_events::student_removed_event;
+use example::example_student;
 use std::ascii::string;
 
 public fun event_example() {
     let address = 0x1;
-    let student = student::new(string(b"Bob"), 18);
+    let student = example_student::new(string(b"Bob"), 18);
     student_added_event(address, student);
     student_removed_event(address);
 }
@@ -65,8 +66,8 @@ public fun event_example() {
 Errors defined in config will be generated under the errors module;
 Ensure that the argument to the error method is always true, otherwise an error will be thrown!
 ```move
-use example::errors::student_not_found_error;
-use example::errors::student_already_exists_error;
+use example::example_student_errors::student_not_found_error;
+use example::example_student_errors::student_already_exists_error;
 
 public fun error_example() {
     student_not_found_error(true);
@@ -79,7 +80,7 @@ public fun error_example() {
 **Existence of a record**
 
 ```move
-use example::schema::Schema;
+use example::example_schema::Schema;
 
 public fun example(schema: &mut Schema) {
     let address = @0x1;
@@ -95,16 +96,16 @@ public fun example(schema: &mut Schema) {
 **Adding a record && Updating a record**
 
 ``` move
-use example::schema::Schema;
+use example::example_schema::Schema;
 use std::ascii::string;
-use example::student;
+use example::example_student;
 
 public fun example(schema: &mut Schema) {
     let address = @0x1;
     // StorageValue
     schema.class().set(10);
     // StorageMap
-    schema.student().set(address, student::new(string(b"Bob"), 18));
+    schema.student().set(address, example_student::new(string(b"Bob"), 18));
     // StorageDoubleMap
     schema.teacher().set(address, 0, address);
 }
@@ -113,8 +114,8 @@ public fun example(schema: &mut Schema) {
 **Deleting a record**
 
 ```move
-use example::schema::Schema;
-use example::student;
+use example::example_schema::Schema;
+use example::example_student;
 
 public fun example(schema: &mut Schema) {
     let address = @0x1;
@@ -138,16 +139,18 @@ If you are not sure if it exists please use contians method judgement before get
 ```move
 
 ```rust
-use example::schema::Schema;
-use example::student;
+use example::example_schema::Schema;
+use example::example_student;
 
 public fun example(schema: &mut Schema) {
     let address = @0x1;
     // StorageValue
     let class = schema.class().get();
+    let class = schema.class()[];
     let option_class = schema.class().try_get();
     // StorageMap
     let student = schema.student().get(address);
+    let student = schema.student()[address];
     let option_student = schema.class().try_get(address);
     // If it is stored as a struct, it will automatically generate the get method for you, which makes it easier to parse the data
     let name = schema.student().get(address).get_name();
@@ -155,6 +158,7 @@ public fun example(schema: &mut Schema) {
     let (name, age) = schema.student().get(address).get();
     // StorageDoubleMap
     let teacher = schema.teacher().get(address, 0);
+    let teacher = schema.teacher()[address, 0];
     let option_teacher = schema.teacher().try_get(address, 0);
 }
 ```

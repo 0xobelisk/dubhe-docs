@@ -13,7 +13,7 @@ At this point we have the concept of a 2D grid but there is no official "map" an
 Go ahead and add the MapConfig as a singleton table in the Dubhe config (dubhe.config.ts).
 
 ```ts filename="dubhe.config.ts" {7,14} copy showLineNumbers
-import { DubheConfig } from "@0xobelisk/sui-common";
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "monster_hunter",
   description: "monster_hunter contract",
@@ -23,14 +23,14 @@ export const dubheConfig = {
     Position: { x: "u64", y: "u64" },
   },
   schemas: {
-    player: "StorageMap<address, bool>",
-    moveable: "StorageMap<address, bool>",
-    position: "StorageMap<address, Position>",
-    map_config: "StorageValue<MapConfig>",
+    player: storage('address', 'bool'),
+    moveable: storage('address', 'bool'),
+    position: storage('address', 'Position'),
+    map_config: storage('MapConfig'),
   },
   errors: {
-    AlreadyRegistered: "This address is already registered",
-    CannotMove: "This entity cannot move",
+    already_registered: "This address is already registered",
+    cannot_move: "This entity cannot move",
   },
 } as DubheConfig;
 ```
@@ -38,15 +38,15 @@ export const dubheConfig = {
 ## Add terrain
 
 ```move filename="deploy_hook.move" {3-4, 7-28} copy showLineNumbers
-module monster_hunter::deploy_hook ;
-use monster_hunter::schema::Schema;
-use monster_hunter::terrain_type;
-use monster_hunter::map_config;
+module monster_hunter::monster_hunter_deploy_hook;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_terrain_type;
+use monster_hunter::monster_hunter_map_config;
 
 public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
-    let  o = terrain_type::new_none();
-    let  t = terrain_type::new_tall_grass();
-    let  b = terrain_type::new_boulder();
+    let  o = monster_hunter_terrain_type::new_none();
+    let  t = monster_hunter_terrain_type::new_tall_grass();
+    let  b = monster_hunter_terrain_type::new_boulder();
     let terrains = vector[
         vector [o, o, o, o, o, o, t, o, o, o, o, o, o, o, o],
         vector [o, o, t, o, o, o, o, o, t, o, o, o, o, b, o],
@@ -65,7 +65,7 @@ public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
 
     let height = terrains.length();
     let width = terrains[0].length();
-    schema.map_config().set(map_config::new(width, height, terrains));
+    schema.map_config().set(monster_hunter_map_config::new(width, height, terrains));
 }
 ```
 
@@ -102,7 +102,7 @@ export default function Home() {
   const loadMapData = async (dubhe: Dubhe) => {
     try {
       const mapConfig = await dubhe.getStorageItem({
-        name: "map_config",
+        name: "monster_hunter_map_config",
       });
 
       if (mapConfig && mapConfig.value) {
@@ -152,7 +152,7 @@ Although boulders are rendering on the map at this point, they do not yet preven
 Let's start by adding the schema to the Dubhe config:
 
 ```ts filename="dubhe.config.ts" {15, 20} copy showLineNumbers
-import { DubheConfig } from "@0xobelisk/sui-common";
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "monster_hunter",
   description: "monster_hunter contract",
@@ -162,16 +162,16 @@ export const dubheConfig = {
     Position: { x: "u64", y: "u64" },
   },
   schemas: {
-    player: "StorageMap<address, bool>",
-    moveable: "StorageMap<address, bool>",
-    position: "StorageMap<address, Position>",
-    map_config: "StorageValue<MapConfig>",
-    obstruction: "StorageMap<Position, bool>",
+    player: storage('address', 'bool'),
+    moveable: storage('address', 'bool'),
+    position: storage('address', 'Position'),
+    map_config: storage('MapConfig'),
+    obstruction: storage('Position', 'bool'),
   },
   errors: {
-    AlreadyRegistered: "This address is already registered",
-    CannotMove: "This entity cannot move",
-    SpaceObstructed: "This space is obstructed",
+    cannot_move: 'This entity cannot move',
+    already_registered: 'This address is already registered',
+    space_obstructed: 'This space is obstructed',
   },
 } as DubheConfig;
 ```
@@ -179,16 +179,15 @@ export const dubheConfig = {
 We'll then make sure deploy_hook.move initializes the boulders properly (with the obstruction and position component) so we can query them later.
 
 ```move filename="deploy_hook.move" {5, 31-41} copy showLineNumbers
-module monster_hunter::deploy_hook;
-use monster_hunter::schema::Schema;
-use monster_hunter::terrain_type;
-use monster_hunter::map_config;
-use monster_hunter::position;
+module monster_hunter::monster_hunter_deploy_hook ;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_terrain_type;
+use monster_hunter::monster_hunter_map_config;
 
 public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
-    let  o = terrain_type::new_none();
-    let  t = terrain_type::new_tall_grass();
-    let  b = terrain_type::new_boulder();
+    let  o = monster_hunter_terrain_type::new_none();
+    let  t = monster_hunter_terrain_type::new_tall_grass();
+    let  b = monster_hunter_terrain_type::new_boulder();
     let terrains = vector[
         vector [o, o, o, o, o, o, t, o, o, o, o, o, o, o, o],
         vector [o, o, t, o, o, o, o, o, t, o, o, o, o, b, o],
@@ -207,15 +206,15 @@ public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
 
     let height = terrains.length();
     let width = terrains[0].length();
-    schema.map_config().set(map_config::new(width, height, terrains));
+    schema.map_config().set(monster_hunter_map_config::new(width, height, terrains));
 
     let x: u64 = 0;
     let y: u64 = 0;
     y.range_do!(height, |y| {
         x.range_do!(width, |x| {
             let terrain = terrains[y][x];
-            let position = position::new(x, y);
-            if (terrain == terrain_type::new_boulder()) {
+            let position = monster_hunter_position::new(x, y);
+            if (terrain == monster_hunter_terrain_type::new_boulder()) {
                 schema.obstruction().set(position, true);
             }
         });
@@ -227,15 +226,15 @@ Then let's use this schema in the move and register methods in map_system.move.
 
 ```move filename="map_system.move" {5, 10-11, 33-34} copy showLineNumbers
 module monster_hunter::map_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::position;
-use monster_hunter::errors::already_registered_error;
-use monster_hunter::errors::space_obstructed_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_position;
+use monster_hunter::monster_hunter_errors::already_registered_error;
+use monster_hunter::monster_hunter_errors::space_obstructed_error;
 
 public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let player = ctx.sender();
     already_registered_error(!schema.player().contains(player));
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
     schema.player().set(player, true);
@@ -258,7 +257,7 @@ public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut Tx
         x = x - 1;
     };
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
     schema.position().set(player, position);
@@ -352,10 +351,10 @@ Currently, players can move off of the bounds of the map. We'll address this by 
 
 ```move filename="map_system.move" {11-14, 40-43} copy showLineNumbers
 module monster_hunter::map_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::position;
-use monster_hunter::errors::already_registered_error;
-use monster_hunter::errors::space_obstructed_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_position;
+use monster_hunter::monster_hunter_errors::already_registered_error;
+use monster_hunter::monster_hunter_errors::space_obstructed_error;
 
 public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let player = ctx.sender();
@@ -366,7 +365,7 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
 
@@ -391,11 +390,11 @@ public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut Tx
     };
 
     // Constrain position to map size, wrapping around if necessary
-    let (width, height, _) = schema.map_config()[].get();
+    let (width, height, _) = schema.monster_hunter_map_config()[].get();
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::newx, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
     schema.position().set(player, position);

@@ -27,7 +27,7 @@ Let's start by adding three new tables to dubhe.config.ts.
 - Encounter associate a player with an encounter.
 
 ```ts filename="dubhe.config.ts" {9, 17-19, 25-26} copy showLineNumbers
-import { DubheConfig } from "@0xobelisk/sui-common";
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "monster_hunter",
   description: "monster_hunter contract",
@@ -38,21 +38,21 @@ export const dubheConfig = {
     EncounterInfo: { monster: "address", catch_attempts: "u64" },
   },
   schemas: {
-    player: "StorageMap<address, bool>",
-    moveable: "StorageMap<address, bool>",
-    position: "StorageMap<address, Position>",
-    map_config: "StorageValue<MapConfig>",
-    obstruction: "StorageMap<Position, bool>",
-    encounter: "StorageMap<address, EncounterInfo>",
-    encounterable: "StorageMap<address, bool>",
-    encounter_trigger: "StorageMap<Position, bool>",
+    player: storage('address', 'bool'),
+    moveable: storage('address', 'bool'),
+    position: storage('address', 'Position'),
+    obstruction: storage('Position', 'bool'),
+    map_config: storage('MapConfig'),
+    encounterable: storage('address', 'bool'),
+    encounter_trigger: storage('Position', 'bool'),
+    encounter: storage('address', 'EncounterInfo'),
   },
   errors: {
-    AlreadyRegistered: "This address is already registered",
-    CannotMove: "This entity cannot move",
-    SpaceObstructed: "This space is obstructed",
-    InEncounter: "This player is already in an encounter",
-    NotInEncounter: "This player is not in an encounter",
+    cannot_move: 'This entity cannot move',
+    already_registered: 'This address is already registered',
+    space_obstructed: 'This space is obstructed',
+    in_encounter: 'This player is already in an encounter',
+    not_in_encounter: 'This player is not in an encounter',
   },
 } as DubheConfig;
 ```
@@ -62,16 +62,16 @@ We then have to make sure that players and tall grass are receiving these compon
 First let's make sure the client is being initialized properly in deploy_hook.move.
 
 ```move filename="deploy_hook.move" {39-41} copy showLineNumbers
-module monster_hunter::deploy_hook;
-use monster_hunter::schema::Schema;
-use monster_hunter::terrain_type;
-use monster_hunter::map_config;
-use monster_hunter::position;
+module monster_hunter::monster_hunter_deploy_hook ;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_terrain_type;
+use monster_hunter::monster_hunter_map_config;
+use monster_hunter::monster_hunter_position;
 
 public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
-    let  o = terrain_type::new_none();
-    let  t = terrain_type::new_tall_grass();
-    let  b = terrain_type::new_boulder();
+    let  o = monster_hunter_terrain_type::new_none();
+    let  t = monster_hunter_terrain_type::new_tall_grass();
+    let  b = monster_hunter_terrain_type::new_boulder();
     let terrains = vector[
         vector [o, o, o, o, o, o, t, o, o, o, o, o, o, o, o],
         vector [o, o, t, o, o, o, o, o, t, o, o, o, o, b, o],
@@ -90,17 +90,17 @@ public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
 
     let height = terrains.length();
     let width = terrains[0].length();
-    schema.map_config().set(map_config::new(width, height, terrains));
+    schema.map_config().set(monster_hunter_map_config::new(width, height, terrains));
 
     let x: u64 = 0;
     let y: u64 = 0;
     y.range_do!(height, |y| {
         x.range_do!(width, |x| {
             let terrain = terrains[y][x];
-            let position = position::new(x, y);
+            let position = monster_hunter_position::new(x, y);
             if (terrain == terrain_type::new_boulder()) {
                 schema.obstruction().set(position, true);
-            } else if (terrain == terrain_type::new_tall_grass()) {
+            } else if (terrain == monster_hunter_terrain_type::new_tall_grass()) {
                 schema.encounter_trigger().set(position, true);
             }
         });
@@ -112,10 +112,10 @@ Then let's update the spawn method in map_system.move to include the Encounterab
 
 ```move filename="map_system.move" {22} copy showLineNumbers
 module monster_hunter::map_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::position;
-use monster_hunter::errors::already_registered_error;
-use monster_hunter::errors::space_obstructed_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_position;
+use monster_hunter::monster_hunter_errors::already_registered_error;
+use monster_hunter::monster_hunter_errors::space_obstructed_error;
 
 public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let player = ctx.sender();
@@ -126,7 +126,7 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
     schema.player().set(player, true);
@@ -155,7 +155,7 @@ public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut Tx
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
     schema.position().set(player, position);
@@ -168,10 +168,10 @@ At this point we would ideally like to implement an element of randomness for tr
 
 ```move filename="map_system.move" {27, 51-57} copy showLineNumbers
 module monster_hunter::map_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::position;
-use monster_hunter::errors::already_registered_error;
-use monster_hunter::errors::space_obstructed_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_position;
+use monster_hunter::monster_hunter_errors::already_registered_error;
+use monster_hunter::monster_hunter_errors::space_obstructed_error;
 use sui::clock::Clock;
 
 public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
@@ -183,7 +183,7 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
 
@@ -213,7 +213,7 @@ public fun move_position(schema: &mut Schema, clock: &Clock, direction: Directio
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
     schema.position().set(player, position);
@@ -231,10 +231,10 @@ Now that we have all of the encounter logic setup we just want to take the last 
 
 ```move filename="map_system.move" {30} copy showLineNumbers
 module monster_hunter::map_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::position;
-use monster_hunter::errors::already_registered_error;
-use monster_hunter::errors::space_obstructed_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_position;
+use monster_hunter::monster_hunter_errors::already_registered_error;
+use monster_hunter::monster_hunter_errors::space_obstructed_error;
 use sui::clock::Clock;
 
 public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
@@ -246,7 +246,7 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
 
@@ -277,7 +277,7 @@ public fun move_position(schema: &mut Schema, clock: &Clock, direction: Directio
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
     schema.position().set(player, position);
@@ -402,7 +402,7 @@ We're almost ready start an encounter. What would an Monster battle be without a
 We'll add a new enum for MonsterType and use that in a new Monster table/component.
 
 ```ts filename="dubhe.config.ts" {8, 21} copy showLineNumbers
-import { DubheConfig } from "@0xobelisk/sui-common";
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "monster_hunter",
   description: "monster_hunter contract",
@@ -414,22 +414,22 @@ export const dubheConfig = {
     EncounterInfo: { monster: "address", catch_attempts: "u64" },
   },
   schemas: {
-    player: "StorageMap<address, bool>",
-    moveable: "StorageMap<address, bool>",
-    position: "StorageMap<address, Position>",
-    map_config: "StorageValue<MapConfig>",
-    obstruction: "StorageMap<Position, bool>",
-    encounter: "StorageMap<address, EncounterInfo>",
-    encounterable: "StorageMap<address, bool>",
-    encounter_trigger: "StorageMap<Position, bool>",
-    monster: "StorageMap<address, MonsterType>",
+    player: storage('address', 'bool'),
+    moveable: storage('address', 'bool'),
+    position: storage('address', 'Position'),
+    obstruction: storage('Position', 'bool'),
+    map_config: storage('MapConfig'),
+    encounterable: storage('address', 'bool'),
+    encounter_trigger: storage('Position', 'bool'),
+    encounter: storage('address', 'EncounterInfo'),
+    monster: storage('address', 'MonsterType'),
   },
   errors: {
-    AlreadyRegistered: "This address is already registered",
-    CannotMove: "This entity cannot move",
-    SpaceObstructed: "This space is obstructed",
-    InEncounter: "This player is already in an encounter",
-    NotInEncounter: "This player is not in an encounter",
+    cannot_move: 'This entity cannot move',
+    already_registered: 'This address is already registered',
+    space_obstructed: 'This space is obstructed',
+    in_encounter: 'This player is already in an encounter',
+    not_in_encounter: 'This player is not in an encounter',
   },
 } as DubheConfig;
 ```
@@ -438,10 +438,10 @@ Now we need a way to choose a type of monster when entering an encounter. We can
 
 ```move filename="map_system.move" {56, 61-74} copy showLineNumbers
 module monster_hunter::map_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::position;
-use monster_hunter::errors::already_registered_error;
-use monster_hunter::errors::space_obstructed_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_position;
+use monster_hunter::monster_hunter_errors::already_registered_error;
+use monster_hunter::monster_hunter_errors::space_obstructed_error;
 use sui::clock::Clock;
 
 public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
@@ -453,7 +453,7 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
 
@@ -484,7 +484,7 @@ public fun move_position(schema: &mut Schema, clock: &Clock, direction: Directio
     let x = (x + width) % width;
     let y = (y + height) % height;
 
-    let position = position::new(x, y);
+    let position = monster_hunter_position::new(x, y);
     space_obstructed_error(!schema.obstruction().contains(position));
 
     schema.position().set(player, position);
@@ -663,7 +663,7 @@ We’ll add MonsterCatchAttempt as an offchain table to broadcast the catch atte
 Go ahead and add both of these to the Dubhe config.
 
 ```ts filename="dubhe.config.ts" {9, 23, 32-38} copy showLineNumbers
-import { DubheConfig } from "@0xobelisk/sui-common";
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "monster_hunter",
   description: "monster_hunter contract",
@@ -676,29 +676,29 @@ export const dubheConfig = {
     EncounterInfo: { monster: "address", catch_attempts: "u64" },
   },
   schemas: {
-    player: "StorageMap<address, bool>",
-    moveable: "StorageMap<address, bool>",
-    position: "StorageMap<address, Position>",
-    map_config: "StorageValue<MapConfig>",
-    obstruction: "StorageMap<Position, bool>",
-    encounter: "StorageMap<address, EncounterInfo>",
-    encounterable: "StorageMap<address, bool>",
-    encounter_trigger: "StorageMap<Position, bool>",
-    monster: "StorageMap<address, MonsterType>",
-    owned_by: "StorageMap<address, address>",
+    player: storage('address', 'bool'),
+    moveable: storage('address', 'bool'),
+    position: storage('address', 'Position'),
+    obstruction: storage('Position', 'bool'),
+    map_config: storage('MapConfig'),
+    encounterable: storage('address', 'bool'),
+    encounter_trigger: storage('Position', 'bool'),
+    encounter: storage('address', 'EncounterInfo'),
+    monster: storage('address', 'MonsterType'),
+    owned_by: storage('address', 'address'),
   },
   errors: {
-    AlreadyRegistered: "This address is already registered",
-    CannotMove: "This entity cannot move",
-    SpaceObstructed: "This space is obstructed",
-    InEncounter: "This player is already in an encounter",
-    NotInEncounter: "This player is not in an encounter",
+    cannot_move: 'This entity cannot move',
+    already_registered: 'This address is already registered',
+    space_obstructed: 'This space is obstructed',
+    in_encounter: 'This player is already in an encounter',
+    not_in_encounter: 'This player is not in an encounter',
   },
   events: {
-    MonsterCatchAttempt: {
-      player: "address",
-      monster: "address",
-      result: "MonsterCatchResult",
+    monster_catch_attempt: {
+      player: 'address',
+      monster: 'address',
+      result: 'MonsterCatchResult',
     },
   },
 } as DubheConfig;
@@ -710,10 +710,10 @@ We also want the monster to be able to escape if the fail throws multiple times,
 
 ```move filename="encounter_system.move" copy showLineNumbers
 module monster_hunter::encounter_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::monster_catch_result;
-use monster_hunter::events::monster_catch_attempt_event;
-use monster_hunter::errors::not_in_encounter_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_monster_catch_result;
+use monster_hunter::monster_hunter_events::monster_catch_attempt_event;
+use monster_hunter::monster_hunter_errors::not_in_encounter_error;
 use sui::random::Random;
 use sui::random;
 
@@ -728,17 +728,17 @@ public fun throw_ball(schema: &mut Schema, random: &Random, ctx: &mut TxContext)
 
     if (rand % 2 == 0) {
         // 50% chance to catch monster
-        monster_catch_attempt_event(player, monster, monster_catch_result::new_caught());
+        monster_catch_attempt_event(player, monster, monster_hunter_monster_catch_result::new_caught());
         schema.owned_by().set(monster, player);
         schema.encounter().remove(player);
     } else if (catch_attempts >= 2) {
         // Missed 2 times, monster escapes
-        monster_catch_attempt_event(player, monster, monster_catch_result::new_fled());
+        monster_catch_attempt_event(player, monster, monster_hunter_monster_catch_result::new_fled());
         schema.monster().remove(monster);
         schema.encounter().remove(player);
     } else {
         // Throw missed!
-        monster_catch_attempt_event(player, monster, monster_catch_result::new_missed());
+        monster_catch_attempt_event(player, monster, monster_hunter_monster_catch_result::new_missed());
         let mut encounter_info = schema.encounter()[player];
         encounter_info.set_catch_attempts(catch_attempts + 1);
         schema.encounter().set(player, encounter_info);
@@ -787,10 +787,10 @@ Last but not least, players should be able to flee encounters. We can add this w
 
 ```move filename="encounter_system.move" {37-44} copy showLineNumbers
 module monster_hunter::encounter_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::monster_catch_result;
-use monster_hunter::events::monster_catch_attempt_event;
-use monster_hunter::errors::not_in_encounter_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_monster_catch_result;
+use monster_hunter::monster_hunter_events::monster_catch_attempt_event;
+use monster_hunter::monster_hunter_errors::not_in_encounter_error;
 use sui::random::Random;
 use sui::random;
 
@@ -805,17 +805,17 @@ public fun throw_ball(schema: &mut Schema, random: &Random, ctx: &mut TxContext)
 
     if (rand % 2 == 0) {
         // 50% chance to catch monster
-        monster_catch_attempt_event(player, monster, monster_catch_result::new_caught());
+        monster_catch_attempt_event(player, monster, monster_hunter_monster_catch_result::new_caught());
         schema.owned_by().set(monster, player);
         schema.encounter().remove(player);
     } else if (catch_attempts >= 2) {
         // Missed 2 times, monster escapes
-        monster_catch_attempt_event(player, monster, monster_catch_result::new_fled());
+        monster_catch_attempt_event(player, monster, monster_hunter_monster_catch_result::new_fled());
         schema.monster().remove(monster);
         schema.encounter().remove(player);
     } else {
         // Throw missed!
-        monster_catch_attempt_event(player, monster, monster_catch_result::new_missed());
+        monster_catch_attempt_event(player, monster, monster_hunter_monster_catch_result::new_missed());
         let mut encounter_info = schema.encounter()[player];
         encounter_info.set_catch_attempts(catch_attempts + 1);
         schema.encounter().set(player, encounter_info);

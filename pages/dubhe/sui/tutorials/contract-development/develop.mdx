@@ -22,12 +22,12 @@ Let's go over what's in dubheConfig
 To complete dms contract I need a Schema to store the numbers, now let's complete the Schema.
 
 ```ts filename="dubhe.config.ts" {5-7} copy showLineNumbers
-import { DubheConfig } from "@0xobelisk/sui-common";
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "dms",
   description: "Distributed Messaging",
   schemas: {
-    message: "StorageValue<String>",
+    message: storage('String'),
   },
 } as DubheConfig;
 ```
@@ -41,66 +41,37 @@ Now we need to generate the contract frame content using Dubhe's most powerful f
 
 🚀 Starting Schema Generation Process...
 📋 Project Configuration:
-  ├─ Name: dms
-  ├─ Description: Distributed Messaging
-  ├─ Network: testnet
-
-📄 Starting Move.toml Generation...
-  └─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/Move.toml
-✅ Move.toml Generation Complete
-
-
-📝 Starting Deploy Hook Generation...
-  └─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/sources/scripts/deploy_hook.move
-✅ Deploy Hook Generation Complete
-
+     └─ Name: dms
+     └─ Description: Distributed Messaging
+     └─ Network: testnet
 
 🔨 Starting Schema Structure Generation...
-  ├─ Generating schema: message
-     ├─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/sources/codegen/schemas/message.move
-     └─ Structure fields: 1
-✅ Schema Structure Generation Complete
+     └─ message: StorageValue<String>
 
-
-📝 Starting Init Generation...
-  └─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/sources/tests/init.move
-✅ Deploy Hook Generation Complete
-
-
-⚙️ Starting System Generation...
-  ├─ Generating systems
-     └─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/sources/systems
-✅ System Generation Complete
-
-✅ Schema Generation Process Complete!
+✅  Schema Generation Process Complete!
 ```
 
 Take a look at the file structure of dms, we don't need to concern ourselves with anything else but our business code systems folder.
 
 ```bash
-➜  dms tree
 ├── Move.toml
 └── sources
-   ├── codegen
-   │     ├── dapp
-   │     │     ├── metadata.move
-   │     │     ├── schema.move
-   │     │     └── system.move
-   │     ├── errors.move
-   │     ├── events.move
-   │     ├── genesis.move
-   │     └── schema.move
-   ├── scripts
-   │     ├── deploy_hook.move
-   │     └── migrate.move
-   ├── systems
-   │     └── message_system.move
-   └── tests
-       ├── init.move
-       └── message.move
+    ├── codegen
+    │         ├── dapp
+    │         │    ├── metadata.move
+    │         │    ├── schema.move
+    │         │    └── system.move
+    │         ├── genesis.move
+    │         └── schema.move
+    ├── scripts
+    │         ├── deploy_hook.move
+    │         └── migrate.move
+    ├── systems
+    └── tests
+        └── init.move
 
+7 directories, 9 files
 
-9 directories, 8 files
 ```
 
 A Message Schema has been generated for you, now you need to write your own business code!
@@ -115,7 +86,7 @@ This can be easily achieved with the help of Dubhe's code generation. The conten
 ```move filename="message.move"
 module dms::message_system {
     use std::ascii::String;
-    use dms::schema::Schema;
+    use dms::dms_schema::Schema;
 
     public entry fun send(schema: &mut Schema, content: String) {
         schema.message().set(content);
@@ -126,15 +97,15 @@ module dms::message_system {
 Let's add an error handler so that the length of the content doesn't exceed 12, how to do error handling?
 
 ```ts filename="dubhe.config.ts" {8-10} copy showLineNumbers
-import { DubheConfig } from "@0xobelisk/sui-common";
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "dms",
   description: "Distributed Messaging",
   schemas: {
-    message: "StorageValue<String>",
+    message: storage('String'),
   },
   errors: {
-    InvalidContentLength: "Content length must be less than 12",
+    invalid_content_length: "Content length must be less than 12",
   },
 } as DubheConfig;
 ```
@@ -150,10 +121,10 @@ export const dubheConfig = {
     message: "StorageValue<String>",
   },
   errors: {
-    InvalidContentLength: "Content length must be less than 12",
+    invalid_content_length: "Content length must be less than 12",
   },
   events: {
-    MessageSent: {
+    message_sent: {
       sender: "address",
       content: "String",
     },
@@ -168,43 +139,20 @@ Execute the schemagen command here.
 
 🚀 Starting Schema Generation Process...
 📋 Project Configuration:
-  ├─ Name: dms
-  ├─ Description: Distributed Messaging
-  ├─ Network: testnet
-
-📝 Starting Deploy Hook Generation...
-  └─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/sources/scripts/deploy_hook.move
-✅ Deploy Hook Generation Complete
-
+     └─ Name: dms
+     └─ Description: Distributed Messaging
+     └─ Network: testnet
 
 📦 Starting Schema Event Generation...
-     └─ Generating MessageSent event: [object Object]
-✅ Schema Event Generation Complete
-
+     └─ message_sent event: {"sender":"address","content":"String"}
 
 🔨 Starting Schema Structure Generation...
-  ├─ Generating schema: message
-     ├─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/sources/codegen/schemas/message.move
-     └─ Structure fields: 1
-✅ Schema Structure Generation Complete
-
+     └─ message: StorageValue<String>
 
 📦 Starting Schema Error Generation...
-     └─ Generating InvalidContentLength message: Content length must be less than 12
-✅ Schema Error Generation Complete
+     └─ invalid_content_length: Content length must be less than 12
 
-
-📝 Starting Init Generation...
-  └─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/sources/tests/init.move
-✅ Deploy Hook Generation Complete
-
-
-⚙️ Starting System Generation...
-  ├─ Generating systems
-     └─ Output path: /Volumes/project/dubhe-template-project/contracts/dms/sources/systems
-✅ System Generation Complete
-
-✅ Schema Generation Process Complete!
+✅  Schema Generation Process Complete!
 ```
 
 Errors and events are already generated.
@@ -214,8 +162,8 @@ First we do an error check, the input content must be greater than 0.
 ```move filename="message.move" {4, 7} copy showLineNumbers
 module dms::message_system {
     use std::ascii::String;
-    use dms::schema::Schema;
-    use dms::errors::invalid_content_length_error;
+    use dms::dms_schema::Schema;
+    use dms::dms_errors::invalid_content_length_error;
 
     public entry fun send(schema: &mut Schema, content: String) {
         invalid_content_length_error(content.length() < 12);
@@ -229,9 +177,9 @@ Finally we add events to the contract.
 ```move filename="message.move" {5, 10} copy showLineNumbers
 module dms::message_system {
     use std::ascii::String;
-    use dms::schema::Schema;
-    use dms::errors::invalid_content_length_error;
-    use dms::events::message_sent_event;
+    use dms::dms_schema::Schema;
+    use dms::dms_errors::invalid_content_length_error;
+    use dms::dms_events::message_sent_event;
 
     public entry fun send(schema: &mut Schema, content: String, ctx: &mut TxContext) {
         invalid_content_length_error(content.length() < 12);
@@ -256,7 +204,7 @@ dubhe-template-project/contracts/counter/sources/scripts/deploy_hook.move
 
   module dms::deploy_hook {
   use std::ascii::string;
-  use dms::schema::Schema;
+  use dms::dms_schema::Schema;
 
   public(package) fun run(_schema: &mut Schema, _ctx: &mut TxContext) {
         _schema.message().set(string(b"Hello World!"));
@@ -268,7 +216,7 @@ dubhe-template-project/contracts/counter/sources/scripts/deploy_hook.move
 Let's run the Build command to check for syntax errors.
 
 ```bash
-➜  dubhe-template-project pnpm dubhe build --network localnet
+➜  pnpm dubhe build --network localnet
 🚀 Running move build
 
 INCLUDING DEPENDENCY Dubhe

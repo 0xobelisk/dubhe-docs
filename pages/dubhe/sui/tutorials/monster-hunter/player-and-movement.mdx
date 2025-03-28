@@ -19,7 +19,7 @@ We're going to start by defining three new schema:
 The syntax is as follows:
 
 ```ts filename="dubhe.config.ts" {10-12} copy showLineNumbers
-import { DubheConfig } from "@0xobelisk/sui-common";
+import { DubheConfig, storage } from "@0xobelisk/sui-common";
 export const dubheConfig = {
   name: "monster_hunter",
   description: "monster_hunter contract",
@@ -28,13 +28,13 @@ export const dubheConfig = {
     Position: { x: "u64", y: "u64" },
   },
   schemas: {
-    player: "StorageMap<address, bool>",
-    moveable: "StorageMap<address, bool>",
-    position: "StorageMap<address, Position>",
+    player: storage('address', 'bool'),
+    moveable: storage('address', 'bool'),
+    position: storage('address', 'Position'),
   },
   errors: {
-    AlreadyRegistered: "This address is already registered",
-    CannotMove: "This entity cannot move",
+    already_registered: "This address is already registered",
+    cannot_move: "This entity cannot move",
   },
 } as DubheConfig;
 ```
@@ -51,9 +51,9 @@ To solve for these problems we can add the register method, which will assign th
 
 ```move filename="map_system.move" {6-13} copy showLineNumbers
 module monster_hunter::map_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::position;
-use monster_hunter::errors::already_registered_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_position;
+use monster_hunter::monster_hunter_errors::already_registered_error;
 
 public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let player = ctx.sender();
@@ -61,7 +61,7 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
 
     schema.player().set(player, true);
     schema.moveable().set(player, true);
-    schema.position().set(player, position::new(x, y));
+    schema.position().set(player, monster_hunter_position::new(x, y));
 }
 ```
 
@@ -71,9 +71,9 @@ Next we'll add the move method to map_system.move. This will allow us to move us
 
 ```move filename="map_system.move" {15-31} copy showLineNumbers
 module monster_hunter::map_system;
-use monster_hunter::schema::Schema;
-use monster_hunter::position;
-use monster_hunter::errors::already_registered_error;
+use monster_hunter::monster_hunter_schema::Schema;
+use monster_hunter::monster_hunter_position;
+use monster_hunter::monster_hunter_errors::already_registered_error;
 
 public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
     let player = ctx.sender();
@@ -81,7 +81,7 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
 
     schema.player().set(player, true);
     schema.moveable().set(player, true);
-    schema.position().set(player, position::new(x, y));
+    schema.position().set(player, monster_hunter_position::new(x, y));
 }
 
 public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut TxContext) {
@@ -99,7 +99,7 @@ public fun move_position(schema: &mut Schema, direction: Direction, ctx: &mut Tx
         x = x - 1;
     };
 
-    schema.position().set(player, position::new(x, y));
+    schema.position().set(player, monster_hunter_position::new(x, y));
 }
 ```
 
