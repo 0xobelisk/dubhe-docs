@@ -471,7 +471,13 @@ const schemas = await dubhe.getSchemas({
   first: 10, // Number of items per page
   after: "cursor", // Cursor for pagination
   orderBy: ["ID_ASC"], // Sorting options
+  jsonOrderBy: [{ path: "field", direction: "ASC" }], // JSON path sorting options
 });
+
+// Access the results
+console.log(schemas.edges); // Array of schema data
+console.log(schemas.pageInfo); // Pagination information
+console.log(schemas.totalCount); // Total number of items
 ```
 
 ### Storage Queries
@@ -488,6 +494,7 @@ const storage = await dubhe.getStorage({
   first: 10,
   after: "cursor",
   orderBy: ["ID_ASC"],
+  jsonOrderBy: [{ path: "field", direction: "ASC" }], // JSON path sorting options
 });
 
 // Access the results
@@ -505,6 +512,10 @@ const item = await dubhe.getStorageItem({
   name: "storage_name",
   key1: "key1_value",
   key2: "key2_value",
+  is_removed: false,
+  last_update_checkpoint: "12345",
+  last_update_digest: "tx_hash",
+  value: "value",
 });
 
 if (item) {
@@ -625,6 +636,21 @@ The following order fields are supported:
   - `KEY1_ASC`, `KEY1_DESC`
   - `KEY2_ASC`, `KEY2_DESC`
   - `VALUE_ASC`, `VALUE_DESC`
+
+### JSON Path Ordering
+
+You can also use JSON path ordering for more complex sorting:
+
+```typescript
+// Example of JSON path ordering
+const schemas = await dubhe.getSchemas({
+  first: 10,
+  jsonOrderBy: [
+    { path: "field1", direction: "ASC" },
+    { path: "field2", direction: "DESC" },
+  ],
+});
+```
 
 ## Best Practices
 
