@@ -2,14 +2,14 @@
 
 ## Dubhe OpenGov Governance
 
-### 4.1 Design Goals
+### Design Goals
 
 - **Fully On-chain**: All decisions executed natively on DubheOS, no off-chain approval.
 - **Risk Stratification**: 7 parallel "Tracks" based on proposal impact.
 - **Time-for-Conviction**: Conviction Voting rewards longer lock-in with higher vote weight.
 - **Efficient & Transparent**: Emergency upgrades in 12 hours; major changes in 28 days max.
 
-### 4.2 Parallel Tracks
+### Parallel Tracks
 
 | Track              | Examples                          | Max in Parallel | Vote Duration | Timelock |
 | ------------------ | --------------------------------- | --------------- | ------------- | -------- |
@@ -23,7 +23,7 @@
 
 > All tracks use Adaptive Quorum — the closer to deadline, the closer the threshold to 50%.
 
-### 4.3 Conviction Voting Multipliers
+### Conviction Voting Multipliers
 
 | Lock Multiplier | Actual Lock Time | Vote Weight |
 | --------------- | ---------------- | ----------- |
@@ -34,7 +34,7 @@
 | 8×              | 4 months         | 5×          |
 | 16×             | 8 months         | 6×          |
 
-### 4.4 Governance Flow
+### Governance Flow
 
 Submit → Lead-in (Threshold Check) → Vote → Confirm → Timelock → On-chain Execution
 
@@ -42,13 +42,13 @@ Submit → Lead-in (Threshold Check) → Vote → Confirm → Timelock → On-ch
 - **Vote**: Users can add weight or change votes during period; proposal fails if "Kill Threshold" is met.
 - **Timelock**: Root = 14d; others = 12h–7d.
 
-### 4.5 Treasury Management
+### Treasury Management
 
 - **Treasury Address**: `0xDUBHETreasurySafe` — 5/9 multisig, executes approved proposals only.
 - **Revenues**: 33.33% of fees, unclaimed rewards, MEV premiums.
 - **Spending**: Any address may submit; >$20k requires Treasury-L, including audit & KPI proof.
 
-### 4.6 Safety & Emergency
+### Safety & Emergency
 
 | Scenario              | Trigger                 | Max Execution Time |
 | --------------------- | ----------------------- | ------------------ |
@@ -56,7 +56,7 @@ Submit → Lead-in (Threshold Check) → Vote → Confirm → Timelock → On-ch
 | Lock contract failure | Root Fast Track + ⅔ YES | 12h                |
 | Multisig key leak     | DAO proposal to rotate  | 24h                |
 
-### 4.7 Governance Participation
+### Governance Participation
 
 1. **Lock**: Choose multiplier on Dubhe Portal → get voting weight.
 2. **Propose**: Upload metadata (GitHub/IPFS) → pick Track → deposit refundable bond.
