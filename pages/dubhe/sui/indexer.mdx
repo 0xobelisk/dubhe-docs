@@ -15,7 +15,7 @@ The Dubhe Rust Indexer is distributed as a pre-compiled binary. You can install 
 
 ```bash
 # Check and install required tools including dubhe-indexer
-dubhe doctor --install-all
+npx @0xobelisk/sui-cli doctor
 ```
 
 Alternatively, you can download the binary directly from the [GitHub releases](https://github.com/0xobelisk/dubhe/releases).
@@ -91,7 +91,7 @@ The indexer requires a `dubhe.config.json` file that defines your contract's sch
 
 ```bash
 # Generate JSON configuration from TypeScript config
-dubhe convert-json --config-path dubhe.config.ts --output-path dubhe.config.json
+npx @0xobelisk/sui-cli convert-json --config-path dubhe.config.ts --output-path dubhe.config.json
 ```
 
 Example configuration structure:
@@ -153,29 +153,6 @@ When GraphQL integration is enabled, the indexed data becomes available through 
 
 ## Querying Indexed Data
 
-### Using Dubhe Client
-
-Query the indexed data using the Dubhe client:
-
-```typescript
-import { Dubhe } from "@0xobelisk/sui-client";
-
-const dubhe = new Dubhe({
-  networkType: "localnet",
-  packageId: "0x123...",
-  metadata: metadata,
-  secretKey: "your-private-key",
-});
-
-// Query indexed storage data
-const playerData = await dubhe.getStorageItem({
-  name: "player",
-  key1: "0x456...", // player address
-});
-
-console.log(playerData.value); // Parsed player data
-```
-
 ### Using GraphQL Client
 
 For more advanced querying capabilities, use the GraphQL client:
@@ -191,10 +168,10 @@ const client = createDubheGraphqlClient({
 // Query with advanced filtering
 const players = await client.queryTable("player", {
   where: {
-    health: { greaterThan: 50 }
+    health: { greaterThan: 50 },
   },
   orderBy: [{ field: "health", direction: "DESC" }],
-  first: 10
+  first: 10,
 });
 ```
 
@@ -241,11 +218,13 @@ RUST_LOG=info dubhe-indexer --config dubhe.config.json
 ### Common Issues
 
 1. **Database Connection Errors**:
+
    - Verify PostgreSQL is running and accessible
    - Check DATABASE_URL environment variable
    - Ensure database user has proper permissions
 
 2. **Network Connection Issues**:
+
    - Verify network connectivity to Sui RPC endpoints
    - Check firewall settings
    - For localnet, ensure local Sui node is running
@@ -340,21 +319,13 @@ Typical development workflow:
 
 ```bash
 # 1. Generate configuration
-dubhe convert-json --config-path dubhe.config.ts
+npx @0xobelisk/sui-cli convert-json --config-path dubhe.config.ts
 
 # 2. Start local services
-dubhe wait --localnet
+npx @0xobelisk/sui-cli wait --localnet
 
 # 3. Start indexer
 dubhe-indexer --config dubhe.config.json --network localnet --force
 
 # 4. Develop and test your application
 ```
-
-## Support
-
-For issues and feature requests related to the Rust indexer:
-
-- **GitHub Issues**: [dubhe repository](https://github.com/0xobelisk/dubhe/issues)
-- **Documentation**: [Dubhe Documentation](https://docs.dubhe.io)
-- **Community**: Join our Discord server for support and discussions
